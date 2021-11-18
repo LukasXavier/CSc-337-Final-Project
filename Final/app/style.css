@@ -1,0 +1,54 @@
+body {
+    background-color: white;
+    font-family: 'Gill Sans MT';
+}
+
+#card2 {
+    transform: translateX(90px);
+}
+
+.card {
+    height: 180px;
+    width: 120px;
+    background-color: blue;
+    border-radius: 20px;
+    position: fixed;
+    border: 9px white solid;
+    display: table-cell;
+    vertical-align: middle;
+    text-align: center;
+    box-shadow: 0 0 0 1px;
+}
+
+.topLeftText {
+    font-size: 35px;
+    color: white;
+    position: absolute;
+    top: 5px;
+    left: 12px;
+}
+
+.bottomRightText {
+    font-size: 35px;
+    color: white;
+    position: absolute;
+    bottom: 5px;
+    right: 12px;
+}
+
+.loop {
+    display: inline-block;
+    height: 160px;
+    width: 80px;
+    background-color: blue;
+    border-radius: 110px / 200px;
+    transform: rotate(35deg);
+    border: 8px white solid;
+}
+
+.cardText {
+    font-size: 80px;
+    color: white;
+    transform: rotate(-35deg) translateX(-27%) translateY(33%);
+}
+
