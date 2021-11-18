@@ -1,0 +1,87 @@
+body {
+    background-color: white;
+    font-family: 'Gill Sans MT';
+    margin: 0;
+}
+
+.playedCards {
+    background-color: orange;
+    width: 50%;
+    left: calc(-50vw + 50%);
+    right: calc(-50vw + 50%);
+    margin: auto;
+    height: 10%;
+    position: fixed;
+    top: 38%;
+    margin-bottom: 10%;
+    display: flex;
+    justify-content: center;
+}
+
+#cardGroup1 {
+    background-color: red;
+    height: 200px;
+    width: 70%;
+    position: fixed;
+    left: calc(-50vw + 50%);
+    right: calc(-50vw + 50%);
+    margin: auto;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+}
+
+#cardGroup4 {
+    background-color: yellow;
+    height: 200px;
+    width: 70%;
+    position: fixed;
+    left: calc(-50vw + 50%);
+    right: calc(-50vw + 50%);
+    margin-left: auto;
+    margin-right: auto;
+    top: 0;
+}
+
+.card {
+    height: 180px;
+    width: 110px;
+    border-radius: 20px;
+    border: 9px white solid;
+    box-shadow: 0 0 0 1px;
+    text-align: center;
+    position: relative;
+    margin-left: -35px;
+    margin-right: -35px;
+}
+
+.topLeftText {
+    font-size: 35px;
+    color: white;
+    position: absolute;
+    top: 1%;
+    left: 7%;
+}
+
+.bottomRightText {
+    font-size: 35px;
+    color: white;
+    position: absolute;
+    bottom: 3%;
+    right: 9%;
+}
+
+.loop {
+    height: 85%;
+    width: 75%;
+    border-radius: 100% / 100%;
+    transform: translateX(9%) translateY(5%) rotate(30deg);
+    border: 5px white solid;
+}
+
+.cardText {
+    font-size: 80px;
+    color: white;
+    transform: rotate(-30deg) translateX(-19%) translateY(30%);
+}
+
