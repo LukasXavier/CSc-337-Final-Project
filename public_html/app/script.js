@@ -1,4 +1,5 @@
 cardCount = 0;
+colors = ['green', 'blue', 'red', 'yellow']
 
 function followMouse(state, card) {
     if (state == "on") {
@@ -11,7 +12,8 @@ function followMouse(state, card) {
 
 function makeCard() {
     var num = Math.floor(Math.random() * 10)
-    $("#cardGroup1").append(playerCard(num, "green"))
+    var randomColor = Math.floor(Math.random() * 4)
+    $("#cardGroup1").append(playerCard(num, colors[randomColor]))
 }
 
 function playerCard(value, color) {
@@ -45,4 +47,10 @@ function makeMove(card) {
     $(".playedCards").children(".card").remove()
     $("#" + card.id).remove()
     $(".playedCards").append(playedCard(cardVal, cardColor))
+    $.post('/playedCard', { 
+        value: cardVal,
+        color: cardColor
+        }, (data, status) => {
+            // update the page with other player's moves
+    })
 }
