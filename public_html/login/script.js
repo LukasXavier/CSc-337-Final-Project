@@ -19,7 +19,7 @@ function createUser() {
 
 function createLobby() {
     $.post('/createLobby', {
-        players: {p1: [], p2: [], p3: [], p4: []},
+        players: {p0: [], p1: [], p2: [], p3: []},
         deck: {played: [], remaining: []},
         turn: 1
     }, (data, status) => {
