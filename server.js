@@ -25,7 +25,7 @@ var UserSchema = new Schema({
 var User = mongoose.model('Users', UserSchema )
 
 var LobbySchema = new Schema({
-    players: {p1: [String], p2: [String], p3: [String], p4: [String]},
+    players: {p0: [String], p1: [String], p2: [String], p3: [String]},
     deck: {played: [String], remaining: [String]},
     turn: Number
   })
@@ -33,22 +33,37 @@ var Lobby = mongoose.model('Lobbies', LobbySchema )
 
 
 app.post('/playedCard', (req, res) => {
-    
+    Lobby.findOne({_id: req.cookies.lobby.id})
+    .exec( (err, result) => {
+        if (err) {return res.end('Could Not Find Lobby')}
+        if (result.turn == req.cookies.lobby.player) {
+            result.players.p0.push("" + req.body.color + req.body.value)
+            result.deck.played.push("" + req.body.color + req.body.value)
+            result.turn = result.turn + 1 % 4
+            result.save(function (err) {
+                if (err) console.log('ERROR SAVING LOBBY')
+                res.end("Remove");
+            })
+        }
+        else {
+            res.end("Keep")
+        }
+    })
 });
 
 app.post('/createUser', (req, res) => {
     var newUser = new User(req.body)
     newUser.save(function (err) {
         if (err) console.log('ERROR SAVING USER')
+        res.end("User Created");
     })
-    res.end("User Created");
 });
 
 app.post('/login', (req, res) => {
-    console.log("bruh")
     User.findOne({username: req.body.username})
     .exec( (err, result) => {
         if (err) {return res.end('Could Not Find User')}
+        res.cookie("login", {username: req.body.username})
         res.end("Logged In");
     })
 });
@@ -57,7 +72,10 @@ app.post('/createLobby', (req, res) => {
     var newLobby = new Lobby(req.body)
     newLobby.save(function (err) {
         if (err) console.log('ERROR FINDING LOBBY')
-        res.end("Lobby Created");
+        else {
+            res.cookie("lobby", {id: newLobby._id, player: 1})
+            res.end("Lobby Created");
+        }
     })
 });
 

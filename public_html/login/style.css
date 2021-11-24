@@ -6,20 +6,20 @@ body {
 }
 
 h1 {
-    color: red;
+    color: blue;
     font-size: 60px;
 }
 
 h2 {
-    color: yellow;
+    color: rgb(0, 255, 0);
 }
 
 p {
-    color: rgb(0, 255, 0);
+    color: yellow;
     display: inline;
 }
 
 input {
     margin-bottom: 30px;
-    color: blue;
+    color: red;
 }
