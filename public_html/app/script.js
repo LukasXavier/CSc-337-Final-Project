@@ -1,4 +1,8 @@
 cardCount = 0;
+colors = ['green', 'blue', 'red', 'yellow']
+document.addEventListener('DOMContentLoaded', function() {
+    makeCard(7)
+}, false);
 
 function followMouse(state, card) {
     if (state == "on") {
@@ -9,9 +13,12 @@ function followMouse(state, card) {
     }
 }
 
-function makeCard() {
-    var num = Math.floor(Math.random() * 10)
-    $("#cardGroup1").append(playerCard(num, "green"))
+function makeCard(amount) {
+    for (let index = 0; index < amount; index++) {
+        var num = Math.floor(Math.random() * 10)
+        var randomColor = Math.floor(Math.random() * 4)
+        $("#cardGroup1").append(playerCard(num, colors[randomColor]))
+    }
 }
 
 function playerCard(value, color) {
@@ -42,7 +49,14 @@ function playedCard(value, color) {
 function makeMove(card) {
     var cardVal = $("#" + card.id).children()[0].innerText
     var cardColor = $("#" + card.id).attr("style").split(" ")[1].replace(";", "")
-    $(".playedCards").children(".card").remove()
-    $("#" + card.id).remove()
-    $(".playedCards").append(playedCard(cardVal, cardColor))
+    $.post('/playedCard', { 
+        value: cardVal,
+        color: cardColor
+        }, (data, status) => {
+            if (data == "Remove") {
+                $(".playedCards").children(".card").remove()
+                $("#" + card.id).remove()
+                $(".playedCards").append(playedCard(cardVal, cardColor))
+            }
+    })
 }
