@@ -110,9 +110,7 @@ function filterSessions() {
 }
 setInterval(filterSessions, 2000);
 
-
 function addSession(username) { sessions[username] = Date.now(); }
-
 
 app.use('/app/*', (req, res, next) => {
     var c = req.cookies;
@@ -124,7 +122,6 @@ app.use('/app/*', (req, res, next) => {
         } else { res.redirect('/public/index.html'); }
     } else { res.redirect('/public/index.html'); }
 });
-
 
 app.use(express.static('public_html'));
 app.get('/*', (req, res) => { res.redirect('/app/home.html'); });

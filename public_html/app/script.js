@@ -49,16 +49,26 @@ function playedCard(value, color) {
 function makeMove(card) {
     var cardVal = $("#" + card.id).children()[0].innerText
     var cardColor = $("#" + card.id).attr("style").split(" ")[1].replace(";", "")
-    $.post('/playedCard', { 
-        value: cardVal,
-        color: cardColor
-        }, (data, status) => {
-            if (data == "Remove") {
-                $(".playedCards").children(".card").remove()
-                $("#" + card.id).remove()
-                $(".playedCards").append(playedCard(cardVal, cardColor))
-            }
-    })
+    if ($(".playedCards").children().length == 0) {
+        var lastPlayedCardVal = cardVal
+        var lastPlayedCardColor = cardColor
+    }
+    else {
+        var lastPlayedCardVal = $(".playedCards").children()[0].innerText[0]
+        var lastPlayedCardColor = $(".playedCards").children().attr("style").split(":")[1].replace(";", "")
+    }
+    if (cardVal == lastPlayedCardVal || cardColor == lastPlayedCardColor) {
+        $.post('/playedCard', { 
+            value: cardVal,
+            color: cardColor
+            }, (data, status) => {
+                if (data == "Remove") {
+                    $(".playedCards").children(".card").remove()
+                    $("#" + card.id).remove()
+                    $(".playedCards").append(playedCard(cardVal, cardColor))
+                }
+        })
+    }
 }
 
 function createLobby() {
