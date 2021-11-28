@@ -15,7 +15,7 @@ const multer = require('multer');
 
 // sets up express and the multer image path
 const app = express();
-const upload = multer({ dest: __dirname + '/public_html/app/images'} );
+const upload = multer({ dest: __dirname + '/public_html/app/pfp'} );
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
