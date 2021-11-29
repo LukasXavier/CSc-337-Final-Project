@@ -2,6 +2,9 @@ cardCount = 0;
 colors = ['green', 'blue', 'red', 'yellow']
 document.addEventListener('DOMContentLoaded', function() {
     makeCard(7)
+    makeOpponentCard(7, 2)
+    makeOpponentCard(7, 3)
+    makeOpponentCard(7, 4)
 }, false);
 
 function followMouse(state, card) {
@@ -19,6 +22,16 @@ function makeCard(amount) {
         var randomColor = Math.floor(Math.random() * 4)
         $("#cardGroup1").append(playerCard(num, colors[randomColor]))
     }
+}
+
+function makeOpponentCard(amount, player) {
+    for (let index = 0; index < amount; index++) {
+        $("#cardGroup" + player).append(opponentCard(player))
+    }
+}
+
+function opponentCard(player) {
+    return '<img class="cardBack' + player + '" src="images/CardBack' + player + '.png"></img>'
 }
 
 function playerCard(value, color) {
