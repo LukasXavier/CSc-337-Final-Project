@@ -15,7 +15,7 @@ const multer = require('multer');
 
 // sets up express and the multer image path
 const app = express();
-const upload = multer({ dest: __dirname + '/public_html/app/images'} );
+const upload = multer({ dest: __dirname + '/public_html/app/images/pfp'} );
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -34,7 +34,8 @@ var User = mongoose.model("Users", UserSchema);
 var LobbySchema = new mongoose.Schema({
     players: {p0: [String], p1: [String], p2: [String], p3: [String]},
     deck: {played: [String], remaining: [String]},
-    turn: Number
+    turn: Number,
+    direction: Number
 });
 var Lobby = mongoose.model("Lobbies", LobbySchema);
 
@@ -48,7 +49,7 @@ app.post('/playedCard', (req, res) => {
         if (result.turn == req.cookies.lobby.player) {
             result.players.p0.push("" + req.body.color + req.body.value)
             result.deck.played.push("" + req.body.color + req.body.value)
-            result.turn = result.turn + 1 % 4
+            result.turn = result.turn + result.direction % 4
             result.save(function (err) {
                 if (err) console.log('ERROR SAVING LOBBY')
                 res.end("Remove");
@@ -65,7 +66,7 @@ app.post('/createLobby', (req, res) => {
     newLobby.save(function (err) {
         if (err) console.log('ERROR FINDING LOBBY')
         else {
-            res.cookie("lobby", {id: newLobby._id, player: 1})
+            res.cookie("lobby", {id: newLobby._id, player: 0})
             res.end("Lobby Created");
         }
     })
