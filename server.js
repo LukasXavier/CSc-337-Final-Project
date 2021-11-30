@@ -32,9 +32,14 @@ var UserSchema = new mongoose.Schema({
 var User = mongoose.model("Users", UserSchema);
 
 var LobbySchema = new mongoose.Schema({
-    players: {p0: [String], p1: [String], p2: [String], p3: [String]},
+    player0 : [String],
+    player1 : [String],
+    player2 : [String],
+    player3 : [String],
+    // players: {p0: [String], p1: [String], p2: [String], p3: [String]},
     deck: {played: [String], remaining: [String]},
-    turn: Number
+    turn: Number,
+    direction: Number
 });
 var Lobby = mongoose.model("Lobbies", LobbySchema);
 
@@ -49,13 +54,43 @@ app.get('/app/draw', (req, res) => {
             if (err || !result) {
                 res.end(JSON.stringify(-1));
             } else {
-                
+                var card = result.deck.remaining.pop();
+
+                res.end(generateCard(5, "red"));
             }
         });
+    } else {
+        res.end(JSON.stringify(-1));
     }
 });
 
-app.post('/playedCard', (req, res) => {
+function generateCard(value, color) {
+    var cardID = "card" + cardCount;
+    var newCard = "";
+    newCard += '<div class="card" style="background-color:' + color + ';" id=' + cardID +
+               ' onmouseover="followMouse(\'on\', this);" ' +
+               'onmouseout="followMouse(\'off\', this);" ' + 
+               'onclick="makeMove(this);"' + '>' + '<div class="topLeftText"><b>' +
+               value + '</b></div>' + '<div class="loop" style="background-color:' +
+               color +  ';"><div class="cardText"><b>' + value + '</b></div></div>' + 
+               '<div class="bottomRightText"><b>' + value + '</b></div></div>'
+    cardCount++;
+    return newCard;
+}
+
+/* WIP: do with but with js
+    db.lobbies.findOneAndUpdate(
+        {"_id": ObjectId("61a5a00de153f294840d4dd3")}, 
+        {$pull : {player0: "blue7"}}
+        )
+
+    WIP: how to add to
+    db.lobbies.findOneAndUpdate(
+        {"_id": ObjectId("61a5a00de153f294840d4dd3")},
+        {$push : {player0: "blue7"}}
+        )
+*/
+app.post('/app/playedCard', (req, res) => {
     var c = req.cookies;
     if (c && c.lobby) {
         Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
@@ -63,14 +98,16 @@ app.post('/playedCard', (req, res) => {
                 res.end(JSON.stringify(-1));
             } else {
                 if (result.turn == c.lobby.player) {
-                    // result.players.p0.pop("" + req.body.color + req.body.value);
-                    result.deck.played.push("" + req.body.color + req.body.value);
-                    result.turn = result.turn + 1 % 4;
+                    var color = req.body.color;
+                    var value = req.body.value;
+                    // Lobby.findOneAndUpdate({_id: c.lobby.id}, {$pull:})
+                    result.deck.played.push("" + color + value);
+                    // result.turn = result.turn + 1 % 4;
                     result.save((err) => {
                         if (err) {
                             res.end(JSON.stringify(-1));
                         } else {
-                            res.end("Remove");
+                            res.end(JSON.stringify(["Remove", playedCard(value, color)]));
                         }
                     });
                 } else {
@@ -79,29 +116,24 @@ app.post('/playedCard', (req, res) => {
             }
         });
     }
-    // Lobby.findOne({_id: req.cookies.lobby.id}).exec( (err, result) => {
-    //     if (err) {return res.end('Could Not Find Lobby')}
-    //     if (result.turn == req.cookies.lobby.player) {
-    //         result.players.p0.push("" + req.body.color + req.body.value)
-    //         result.deck.played.push("" + req.body.color + req.body.value)
-    //         result.turn = result.turn + 1 % 4
-    //         result.save(function (err) {
-    //             if (err) console.log('ERROR SAVING LOBBY')
-    //             res.end("Remove");
-    //         })
-    //     }
-    //     else {
-    //         res.end("Keep")
-    //     }
-    // })
 });
 
-app.post('/createLobby', (req, res) => {
+function playedCard(value, color) {
+    var newCard = "";
+    newCard += '<div class="card" style="background-color:' + color + ';">' + 
+               '<div class="topLeftText"><b>' + value + '</b></div>' +
+               '<div class="loop" style="background-color:' + color + 
+               ';"><div class="cardText"><b>' + value + '</b></div></div>' + 
+               '<div class="bottomRightText"><b>' + value + '</b></div></div>'
+    return newCard;
+}
+
+app.post('/app/createLobby', (req, res) => {
     var newLobby = new Lobby(req.body)
     newLobby.save(function (err) {
         if (err) console.log('ERROR FINDING LOBBY')
         else {
-            res.cookie("lobby", {id: newLobby._id, player: 1})
+            res.cookie("lobby", {id: newLobby._id, player: 0})
             res.end("Lobby Created");
         }
     })
@@ -162,6 +194,6 @@ app.use('/app/*', (req, res, next) => {
 
 
 app.use(express.static('public_html'));
-app.get('/*', (req, res) => { res.redirect('/app/home.html'); });
+app.get('/*', (req, res) => { res.redirect('/app/lobby.html'); });
 
 app.listen(80, () => { console.log('server has started'); });
