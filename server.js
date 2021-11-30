@@ -54,9 +54,20 @@ app.get('/app/draw', (req, res) => {
             if (err || !result) {
                 res.end(JSON.stringify(-1));
             } else {
+                if (result.deck.remaining.length == 0) {
+                    result.deck.remaining = shuffleDeck();
+                    var lastCard = result.deck.played.pop();
+                    result.deck.played = [lastCard];
+                }
                 var card = result.deck.remaining.pop();
-
-                res.end(generateCard(5, "red"));
+                result.player0.push(card);
+                result.save( (err) => {
+                    if (err) {
+                        res.end(JSON.stringify(-1));
+                    } else {
+                        res.end(generateCard(card));
+                    }
+                });
             }
         });
     } else {
@@ -64,7 +75,41 @@ app.get('/app/draw', (req, res) => {
     }
 });
 
-function generateCard(value, color) {
+app.get('/app/cards', (req, res) => {
+    var c = req.cookies;
+    if (c && c.lobby) {
+        Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
+            if (err || !result) {
+                res.end(JSON.stringify(-1));
+            } else {
+                var retVal = JSON.stringify(
+                    [
+                        generateHand(result.player0),
+                        playedCard(result.deck.played.pop()),
+                        result.player1.length,
+                        result.player2.length,
+                        result.player3.length
+                    ]);
+                res.end(retVal);
+            }
+        });
+    } else {
+        res.end(JSON.stringify(-1));
+    }
+});
+
+function generateHand(cards) {
+    res = [];
+    cards.forEach(card => {
+        res.push(generateCard(card));
+    });
+    return res;
+}
+
+
+function generateCard(card) {
+    if (!card) { return ""; }
+    [color, value] = card.split(' ');
     var cardID = "card" + cardCount;
     var newCard = "";
     newCard += '<div class="card" style="background-color:' + color + ';" id=' + cardID +
@@ -100,14 +145,20 @@ app.post('/app/playedCard', (req, res) => {
                 if (result.turn == c.lobby.player) {
                     var color = req.body.color;
                     var value = req.body.value;
-                    // Lobby.findOneAndUpdate({_id: c.lobby.id}, {$pull:})
-                    result.deck.played.push("" + color + value);
-                    // result.turn = result.turn + 1 % 4;
-                    result.save((err) => {
+                    Lobby.findOneAndUpdate({_id: c.lobby.id}, {$pull: {player0 : "" + color + " " + value}}).exec( (err) => {
                         if (err) {
                             res.end(JSON.stringify(-1));
                         } else {
-                            res.end(JSON.stringify(["Remove", playedCard(value, color)]));
+                            result.deck.played.push("" + color + " " + value);
+                            // result.turn = result.turn + 1 % 4;
+                            result.save((err) => {
+                                if (err) {
+                                    res.end(JSON.stringify(-1));
+                                } else {
+                                    // res.end();
+                                    res.end(JSON.stringify(["Remove", playedCard(color + " " + value)]));
+                                }
+                            });
                         }
                     });
                 } else {
@@ -118,7 +169,9 @@ app.post('/app/playedCard', (req, res) => {
     }
 });
 
-function playedCard(value, color) {
+function playedCard(card) {
+    if (!card) { return ""; }
+    [color, value] = card.split(' ');
     var newCard = "";
     newCard += '<div class="card" style="background-color:' + color + ';">' + 
                '<div class="topLeftText"><b>' + value + '</b></div>' +
@@ -129,8 +182,20 @@ function playedCard(value, color) {
 }
 
 app.post('/app/createLobby', (req, res) => {
-    var newLobby = new Lobby(req.body)
-    newLobby.save(function (err) {
+    var newDeck = shuffleDeck();
+    var newLobby = new Lobby({
+        deck : {
+            played : [],
+            remaining : newDeck
+        },
+        player0 : drawCard(7, newDeck),
+        player1 : drawCard(7, newDeck),
+        player2 : drawCard(7, newDeck),
+        player3 : drawCard(7, newDeck),
+        turn : 0,
+        direction : 1    
+    });
+    newLobby.save( (err) => {
         if (err) console.log('ERROR FINDING LOBBY')
         else {
             res.cookie("lobby", {id: newLobby._id, player: 0})
@@ -138,6 +203,26 @@ app.post('/app/createLobby', (req, res) => {
         }
     })
 });
+
+function shuffleDeck() {
+    var res = [];
+    [0, 1].forEach(pile => {
+        ["red", "blue", "green", "yellow"].forEach(color => {
+            [0,1,2,3,4,5,6,7,8,9,"+2","@","%"].forEach(value => {
+                res.push("" + color + " " + value);
+            });
+        });
+    });
+    return res.sort(()=> (Math.random() > .5) ? 1 : -1);
+}
+
+function drawCard(num, deck) {
+    var res = [];
+    for (let i = 0; i < num; i++) {
+        res.push(deck.pop());
+    }
+    return res;
+}
 
 app.post('/login', (req, res) => {
     var user = {username: req.body.username, password: req.body.password}
