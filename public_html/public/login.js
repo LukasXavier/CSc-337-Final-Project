@@ -1,5 +1,5 @@
 /**
- * Author: Eric Mendoza ()
+ * Author: Eric Mendoza (ericmendoza@email.arizona.edu)
  * Author: Luke Ramirez (lucasxavier@email.arizona.edu)
  * File: server.js
  * Assignment: Final Project
