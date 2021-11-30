@@ -8,7 +8,7 @@
     <script src="/jquery.js"></script>
 </head>
 
-<body>
+<body onload="getGame();">
     <img id="background" src="images/Background.png">
     <!-- <div class="playedCards"></div> -->
     <div onclick="draw();" class="playedCards"></div>
@@ -16,10 +16,5 @@
     <div id="cardGroup2"></div>
     <div id="cardGroup3"></div>
     <div id="cardGroup4"></div>
-
-    <div id="cardGroup1"></div>
-    <div class="playedCards"></div>
-    <div id="cardGroup4" onclick="makeCard(1)"></div>
-
 </body>
 </html>

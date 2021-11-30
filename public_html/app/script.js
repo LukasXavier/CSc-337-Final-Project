@@ -14,13 +14,6 @@
 */
 cardCount = 0;
 colors = ['green', 'blue', 'red', 'yellow']
-document.addEventListener('DOMContentLoaded', function() {
-    draw();
-    // makeCard(7)
-    // makeOpponentCard(7, 2)
-    // makeOpponentCard(7, 3)
-    // makeOpponentCard(7, 4)
-}, false);
 
 function followMouse(state, card) {
     state == "on" ? y = -50 : y = 0;
@@ -31,18 +24,37 @@ function draw() {
     $.get('/app/draw',
     (data) => {
         if (data == -1) {
-            alert("Something went wrong with the server, try clearing your cookies")
+            alert("Something went wrong with the server, try clearing your cookies");
         } else {
             $("#cardGroup1").append(data);
         }
     });
 }
 
-// function makeOpponentCard(amount, player) {
-//     for (let index = 0; index < amount; index++) {
-//         $("#cardGroup" + player).append(opponentCard(player))
-//     }
-// }
+function getGame() {
+    $.get('/app/cards',
+    (data) => {
+        data = JSON.parse(data);
+        if (data == -1) {
+            alert("Something went wrong with the server, try clearing your cookies");
+        } else {
+            $("#cardGroup1").children(".card").remove();
+            $("#cardGroup2").children(".cardBack2").remove();
+            $("#cardGroup3").children(".cardBack3").remove();
+            $("#cardGroup4").children(".cardBack4").remove();
+            data[0].forEach(card => { $("#cardGroup1").append(card); });
+            $(".playedCards").children(".card").remove();
+            $(".playedCards").append(data[1]);
+            for (let i = 2; i < data.length; i++) {
+                for (let j = 0; j < data[i]; j++) {
+                    $("#cardGroup" + i).append(opponentCard(i));
+                }
+            }
+        }
+    });
+}
+
+setInterval(getGame, 500)
 
 function opponentCard(player) {
     return '<img class="cardBack' + player + '" src="images/CardBack' + player + '.png"></img>'
@@ -67,11 +79,8 @@ function makeMove(card) {
 }
 
 function createLobby() {
-    $.post('/app/createLobby', {
-        players: {p0: [], p1: [], p2: [], p3: []},
-        deck: {played: [], remaining: []},
-        turn: 0
-    }, (data, status) => {
+    $.post('/app/createLobby',
+    (data, status) => {
         alert(data)
         window.location.href = '/app/uno.html';
     })
