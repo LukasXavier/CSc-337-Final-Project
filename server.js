@@ -1,5 +1,5 @@
 /**
- * Author: Eric Mendoza ()
+ * Author: Eric Mendoza (ericmendoza@email.arizona.edu)
  * Author: Luke Ramirez (lucasxavier@email.arizona.edu)
  * File: server.js
  * Assignment: Final Project
@@ -15,7 +15,7 @@ const multer = require('multer');
 
 // sets up express and the multer image path
 const app = express();
-const upload = multer({ dest: __dirname + '/public_html/app/pfp'} );
+const upload = multer({ dest: __dirname + '/public_html/app/images/pfp'} );
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -41,23 +41,59 @@ var Lobby = mongoose.model("Lobbies", LobbySchema);
 mongoose.connect(mongoDBURL, { useNewUrlParser: true });
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
+var cardCount = 0;
+app.get('/app/draw', (req, res) => {
+    var c = req.cookies;
+    if (c && c.lobby) {
+        Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
+            if (err || !result) {
+                res.end(JSON.stringify(-1));
+            } else {
+                
+            }
+        });
+    }
+});
+
 app.post('/playedCard', (req, res) => {
-    Lobby.findOne({_id: req.cookies.lobby.id})
-    .exec( (err, result) => {
-        if (err) {return res.end('Could Not Find Lobby')}
-        if (result.turn == req.cookies.lobby.player) {
-            result.players.p0.push("" + req.body.color + req.body.value)
-            result.deck.played.push("" + req.body.color + req.body.value)
-            result.turn = result.turn + 1 % 4
-            result.save(function (err) {
-                if (err) console.log('ERROR SAVING LOBBY')
-                res.end("Remove");
-            })
-        }
-        else {
-            res.end("Keep")
-        }
-    })
+    var c = req.cookies;
+    if (c && c.lobby) {
+        Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
+            if (err || !result) {
+                res.end(JSON.stringify(-1));
+            } else {
+                if (result.turn == c.lobby.player) {
+                    // result.players.p0.pop("" + req.body.color + req.body.value);
+                    result.deck.played.push("" + req.body.color + req.body.value);
+                    result.turn = result.turn + 1 % 4;
+                    result.save((err) => {
+                        if (err) {
+                            res.end(JSON.stringify(-1));
+                        } else {
+                            res.end("Remove");
+                        }
+                    });
+                } else {
+                    res.end("Keep");
+                }
+            }
+        });
+    }
+    // Lobby.findOne({_id: req.cookies.lobby.id}).exec( (err, result) => {
+    //     if (err) {return res.end('Could Not Find Lobby')}
+    //     if (result.turn == req.cookies.lobby.player) {
+    //         result.players.p0.push("" + req.body.color + req.body.value)
+    //         result.deck.played.push("" + req.body.color + req.body.value)
+    //         result.turn = result.turn + 1 % 4
+    //         result.save(function (err) {
+    //             if (err) console.log('ERROR SAVING LOBBY')
+    //             res.end("Remove");
+    //         })
+    //     }
+    //     else {
+    //         res.end("Keep")
+    //     }
+    // })
 });
 
 app.post('/createLobby', (req, res) => {
@@ -117,9 +153,8 @@ function addSession(username) { sessions[username] = Date.now(); }
 app.use('/app/*', (req, res, next) => {
     var c = req.cookies;
     if (c && c.username) {
-        var username = c.username;
-        if (username in sessions) {
-            addSession(username);
+        if (c.username in sessions) {
+            addSession(c.username);
             next();
         } else { res.redirect('/public/index.html'); }
     } else { res.redirect('/public/index.html'); }
