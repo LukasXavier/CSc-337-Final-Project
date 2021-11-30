@@ -6,7 +6,7 @@
  * Course: CSc 337; Fall 21
  * Purpose: 
  */
-function login() {
+ function login() {
     $.post('/login',
     {
         username: $('#usernameLogin').val(),
