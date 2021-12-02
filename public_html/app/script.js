@@ -42,7 +42,8 @@ function getGame() {
             $("#cardGroup2").children(".cardBack2").remove();
             $("#cardGroup3").children(".cardBack3").remove();
             $("#cardGroup4").children(".cardBack4").remove();
-            data[0].forEach(card => { $("#cardGroup1").append(card); });
+            data[0].forEach(card => { 
+            $("#cardGroup1").append(card); });
             $(".playedCards").children(".card").remove();
             $(".playedCards").append(data[1]);
             for (let i = 2; i < data.length; i++) {
@@ -63,19 +64,34 @@ function opponentCard(player) {
 function makeMove(card) {
     var cardVal = $("#" + card.id).children()[0].innerText
     var cardColor = $("#" + card.id).attr("style").split(" ")[1].replace(";", "")
-    $.post('/app/playedCard', { 
-        value: cardVal,
-        color: cardColor
-        }, (data, status) => {
-            data = JSON.parse(data);
-            if (data[0] == "Remove") {
-                $(".playedCards").children(".card").remove()
-                $("#" + card.id).remove()
-                $(".playedCards").append(data[1])
-            } else if (data == -1) {
-                alert("Something went wrong with the server, try reloading the page");
-            }
-    })
+    console.log("Bruh1: " + cardVal)
+    console.log("Bruh1: " + cardColor)
+    if ($(".playedCards").children().length == 0) {
+        var lastPlayedCardVal = cardVal
+        var lastPlayedCardColor = cardColor
+    }
+    else {
+        var lastPlayedCardVal = $(".playedCards").children()[0].innerText.split("\n")[0]
+        var lastPlayedCardColor = $(".playedCards").children().attr("style").split(":")[1].replace(";", "")
+    }
+    console.log("Bruh1: " + lastPlayedCardVal)
+    console.log("Bruh1: " + lastPlayedCardColor)
+    if (cardVal == lastPlayedCardVal || cardColor == lastPlayedCardColor) {
+        $.post('/app/playedCard', { 
+            value: cardVal,
+            color: cardColor,
+            id: card.id
+            }, (data, status) => {
+                data = JSON.parse(data);
+                if (data[0] == "Remove") {
+                    $(".playedCards").children(".card").remove()
+                    $("#" + card.id).remove()
+                    $(".playedCards").append(data[1])
+                } else if (data == -1) {
+                    alert("Something went wrong with the server, try reloading the page");
+                }
+        })
+    }
 }
 
 function createLobby() {
