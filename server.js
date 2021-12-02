@@ -60,12 +60,12 @@ app.get('/app/draw', (req, res) => {
                     result.deck.played = [lastCard];
                 }
                 var card = result.deck.remaining.pop();
-                result.player0.push(card);
+                getPlayers(result, c)[0].push(card);
                 result.save( (err) => {
                     if (err) {
                         res.end(JSON.stringify(-1));
                     } else {
-                        res.end(generateCard(card));
+                        res.end(playedCard(card));
                     }
                 });
             }
@@ -75,6 +75,22 @@ app.get('/app/draw', (req, res) => {
     }
 });
 
+function getPlayers(result, playerCookie) {
+    var playerNum = playerCookie.lobby.player
+    if (playerNum == 0) {
+        return [result.player0, result.player1, result.player2, result.player3]
+    }
+    else if (playerNum == 1) {
+        return [result.player1, result.player2, result.player3, result.player0]
+    }
+    else if (playerNum == 2) {
+        return [result.player2, result.player3, result.player0, result.player1]
+    }
+    else if (playerNum == 3) {
+        return [result.player3, result.player0, result.player1, result.player2]
+    }
+}
+
 app.get('/app/cards', (req, res) => {
     var c = req.cookies;
     if (c && c.lobby) {
@@ -82,13 +98,14 @@ app.get('/app/cards', (req, res) => {
             if (err || !result) {
                 res.end(JSON.stringify(-1));
             } else {
+                var players = getPlayers(result, c)
                 var retVal = JSON.stringify(
                     [
-                        generateHand(result.player0),
+                        generateHand(players[0]),
                         playedCard(result.deck.played.pop()),
-                        result.player1.length,
-                        result.player2.length,
-                        result.player3.length
+                        players[1].length,
+                        players[2].length,
+                        players[3].length
                     ]);
                 res.end(retVal);
             }
@@ -109,11 +126,11 @@ function generateHand(cards) {
 
 function generateCard(card) {
     if (!card) { return ""; }
-    [color, value] = card.split(' ');
-    var cardID = "card" + cardCount;
+    [color, value, id] = card.split(' ');
+    var cardID = "card" + id;
     var newCard = "";
-    newCard += '<div class="card" style="background-color:' + color + ';" id=' + cardID +
-               ' onmouseover="followMouse(\'on\', this);" ' +
+    newCard += '<div class="card" style="background-color:' + color + ';" id="' + cardID +
+               '" onmouseover="followMouse(\'on\', this);" ' +
                'onmouseout="followMouse(\'off\', this);" ' + 
                'onclick="makeMove(this);"' + '>' + '<div class="topLeftText"><b>' +
                value + '</b></div>' + '<div class="loop" style="background-color:' +
@@ -145,11 +162,14 @@ app.post('/app/playedCard', (req, res) => {
                 if (result.turn == c.lobby.player) {
                     var color = req.body.color;
                     var value = req.body.value;
-                    Lobby.findOneAndUpdate({_id: c.lobby.id}, {$pull: {player0 : "" + color + " " + value}}).exec( (err) => {
+                    var cardID = req.body.id.substring(4);
+                    var players = getPlayers(result, c)
+                    Lobby.findOneAndUpdate({_id: c.lobby.id}, {$pull: {player0 : "" + color + " " + value + " " + cardID}}).exec( (err) => {
                         if (err) {
                             res.end(JSON.stringify(-1));
                         } else {
-                            result.deck.played.push("" + color + " " + value);
+                            result.deck.played.push("" + color + " " + value + " " + cardID);
+                            console.log(result.deck.remaining.length)
                             // result.turn = result.turn + 1 % 4;
                             result.save((err) => {
                                 if (err) {
@@ -206,10 +226,12 @@ app.post('/app/createLobby', (req, res) => {
 
 function shuffleDeck() {
     var res = [];
+    var count = 0;
     [0, 1].forEach(pile => {
         ["red", "blue", "green", "yellow"].forEach(color => {
-            [0,1,2,3,4,5,6,7,8,9,"+2","@","%"].forEach(value => {
-                res.push("" + color + " " + value);
+            [0,1,2,3,4,5,6,7,8,9,"+2","$","%"].forEach(value => {
+                res.push(color + " " + value + " " + count);
+                count++;
             });
         });
     });
