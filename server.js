@@ -180,7 +180,7 @@ app.post('/app/playedCard', (req, res) => {
                         }
                     });
                 } else {
-                    res.end("Keep");
+                    res.end(["Keep"]);
                 }
             }
         });
