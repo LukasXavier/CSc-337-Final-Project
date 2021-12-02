@@ -36,7 +36,6 @@ var LobbySchema = new mongoose.Schema({
     player1 : [String],
     player2 : [String],
     player3 : [String],
-    // players: {p0: [String], p1: [String], p2: [String], p3: [String]},
     deck: {played: [String], remaining: [String]},
     turn: Number,
     direction: Number
@@ -65,7 +64,7 @@ app.get('/app/draw', (req, res) => {
                     if (err) {
                         res.end(JSON.stringify(-1));
                     } else {
-                        res.end(playedCard(card));
+                        res.end(generateCard(card));
                     }
                 });
             }
@@ -163,19 +162,18 @@ app.post('/app/playedCard', (req, res) => {
                     var color = req.body.color;
                     var value = req.body.value;
                     var cardID = req.body.id.substring(4);
-                    var players = getPlayers(result, c)
-                    Lobby.findOneAndUpdate({_id: c.lobby.id}, {$pull: {player0 : "" + color + " " + value + " " + cardID}}).exec( (err) => {
+                    var curPlayer = "player" + c.lobby.player
+                    var curCard = "" + color + " " + value + " " + cardID
+                    Lobby.findOneAndUpdate({_id: c.lobby.id}, {$pull: {[curPlayer] : curCard}}).exec( (err) => {
                         if (err) {
                             res.end(JSON.stringify(-1));
                         } else {
                             result.deck.played.push("" + color + " " + value + " " + cardID);
-                            console.log(result.deck.remaining.length)
-                            // result.turn = result.turn + 1 % 4;
+                            result.turn = result.turn + 1 % 4;
                             result.save((err) => {
                                 if (err) {
                                     res.end(JSON.stringify(-1));
                                 } else {
-                                    // res.end();
                                     res.end(JSON.stringify(["Remove", playedCard(color + " " + value)]));
                                 }
                             });

@@ -107,6 +107,7 @@ body {
     position: relative;
     margin-left: -35px;
     margin-right: -35px;
+    user-select: none;
 }
 
 .topLeftText {
