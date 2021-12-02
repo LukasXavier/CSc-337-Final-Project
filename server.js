@@ -180,7 +180,7 @@ app.post('/app/playedCard', (req, res) => {
                         }
                     });
                 } else {
-                    res.end(["Keep"]);
+                    res.end(JSON.stringify(["Keep"]));
                 }
             }
         });
@@ -207,17 +207,40 @@ app.post('/app/createLobby', (req, res) => {
             remaining : newDeck
         },
         player0 : drawCard(7, newDeck),
-        player1 : drawCard(7, newDeck),
-        player2 : drawCard(7, newDeck),
-        player3 : drawCard(7, newDeck),
+        player1 : [],
+        player2 : [],
+        player3 : [],
         turn : 0,
         direction : 1    
     });
     newLobby.save( (err) => {
-        if (err) console.log('ERROR FINDING LOBBY')
+        if (err) console.log('ERROR CREATING LOBBY')
         else {
             res.cookie("lobby", {id: newLobby._id, player: 0})
             res.end("Lobby Created");
+        }
+    })
+});
+
+playerCount = 1
+
+app.post('/app/joinLobby', (req, res) => {
+    Lobby.findOne().exec( (err, result) => {
+        if (err) {
+            res.end(JSON.stringify(-1));
+        }
+        else {
+            res.cookie("lobby", {id: result._id, player: playerCount})
+            console.log(req.cookies)
+            getPlayers(result, req.cookies)[0] = drawCard(7, result.deck.remaining)
+            console.log(result)
+            playerCount++
+            result.save( (err) => {
+                if (err) console.log('ERROR FINDING LOBBY')
+                else {
+                    res.end("Lobby Joined");
+                }
+            })
         }
     })
 });

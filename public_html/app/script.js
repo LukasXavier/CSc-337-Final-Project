@@ -59,8 +59,6 @@ function getGame() {
     });
 }
 
-setInterval(getGame, 500)
-
 function opponentCard(player) {
     return '<img class="cardBack' + player + '" src="images/CardBack' + player + '.png"></img>'
 }
@@ -87,7 +85,8 @@ function makeMove(card) {
                     $(".playedCards").children(".card").remove()
                     $("#" + card.id).remove()
                     $(".playedCards").append(data[1])
-                } else if (data == -1) {
+                } 
+                else if (data == -1) {
                     alert("Something went wrong with the server, try reloading the page");
                 }
         })
@@ -96,6 +95,15 @@ function makeMove(card) {
 
 function createLobby() {
     $.post('/app/createLobby',
+    (data, status) => {
+        alert(data)
+        window.location.href = '/app/uno.html';
+        setInterval(getGame, 500)
+    })
+}
+
+function joinLobby() {
+    $.post('/app/joinLobby',
     (data, status) => {
         alert(data)
         window.location.href = '/app/uno.html';
