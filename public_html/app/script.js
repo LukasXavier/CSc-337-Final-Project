@@ -50,10 +50,13 @@ function getGame() {
             
             $(".playedCards").children(".card").remove();
             $(".playedCards").append(data[1]);
-            for (let i = 2; i < data.length; i++) {
+            for (let i = 2; i < data.length-1; i++) {
                 for (let j = 0; j < data[i]; j++) {
                     $("#cardGroup" + i).append(opponentCard(i));
                 }
+            }
+            if (data[5]) {
+                window.top.location = window.top.location;
             }
         }
     });

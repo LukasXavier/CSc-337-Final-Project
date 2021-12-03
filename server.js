@@ -59,7 +59,7 @@ app.get('/app/draw', (req, res) => {
                     result.deck.played = [lastCard];
                 }
                 var card = result.deck.remaining.pop();
-                getPlayers(result, c)[0].push(card);
+                getPlayers(result, c.lobby.player)[0].push(card);
                 result.save( (err) => {
                     if (err) {
                         res.end(JSON.stringify(-1));
@@ -74,8 +74,7 @@ app.get('/app/draw', (req, res) => {
     }
 });
 
-function getPlayers(result, playerCookie) {
-    var playerNum = playerCookie.lobby.player
+function getPlayers(result, playerNum) {
     if (playerNum == 0) {
         return [result.player0, result.player1, result.player2, result.player3]
     }
@@ -97,7 +96,7 @@ app.get('/app/cards', (req, res) => {
             if (err || !result) {
                 res.end(JSON.stringify(-1));
             } else {
-                var players = getPlayers(result, c)
+                var players = getPlayers(result, c.lobby.player)
                 var retVal = JSON.stringify(
                     [
                         generateHand(players[0]),
@@ -232,7 +231,7 @@ app.post('/app/joinLobby', (req, res) => {
         else {
             res.cookie("lobby", {id: result._id, player: playerCount})
             console.log(req.cookies)
-            getPlayers(result, req.cookies)[0] = drawCard(7, result.deck.remaining)
+            getPlayers(result, req.cookies)[0] = drawCard(7, result.deck.remaining) // fix it
             console.log(result)
             playerCount++
             result.save( (err) => {
