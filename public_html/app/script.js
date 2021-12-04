@@ -12,6 +12,7 @@
 25 each color 2 sets of (0-9, skip (@), +2, reverse (%))
 8 wild cards (4 wild cards, 4 +4 wild cards)
 */
+const socket = io();
 cardCount = 0;
 colors = ['green', 'blue', 'red', 'yellow']
 
@@ -31,39 +32,33 @@ function draw() {
     });
 }
 
-function getGame() {
-    $.get('/app/cards',
-    (data) => {
-        data = JSON.parse(data);
-        if (data == -1) {
-            alert("Something went wrong with the server, try clearing your cookies");
-        } else {
-            $("#cardGroup2").children(".cardBack2").remove();
-            $("#cardGroup3").children(".cardBack3").remove();
-            $("#cardGroup4").children(".cardBack4").remove();
-            data[0].forEach(card => { 
-
-                if ($("#cardGroup1").children().length != data[0].length) {
-                    $("#cardGroup1").append(card); 
-                }
-            });
-            
-            $(".playedCards").children(".card").remove();
-            $(".playedCards").append(data[1]);
-            for (let i = 2; i < data.length-1; i++) {
-                for (let j = 0; j < data[i]; j++) {
-                    $("#cardGroup" + i).append(opponentCard(i));
-                }
-            }
-            if (data[5]) {
-                window.top.location = window.top.location;
-            }
-        }
+socket.on("receiveGame", (data) => {
+    $("#cardGroup1").children(".card").remove();
+    $("#cardGroup2").children(".cardBack2").remove();
+    $("#cardGroup3").children(".cardBack3").remove();
+    $("#cardGroup4").children(".cardBack4").remove();
+    data[0].forEach(card => { 
+        $("#cardGroup1").append(card); 
     });
+    
+    $(".playedCards").children(".card").remove();
+    $(".playedCards").append(data[1]);
+
+    for (let i = 2; i < 5; i++) {
+        $("#cardGroup" + i).append(opponentCard(i, data[i]));
+    }
+})
+
+function getGame() {
+    socket.emit("getGame")
 }
 
-function opponentCard(player) {
-    return '<img class="cardBack' + player + '" src="images/CardBack' + player + '.png"></img>'
+function opponentCard(player, amount) {
+    out = ""
+    for (let index = 0; index < amount; index++) {
+        out += '<img class="cardBack' + player + '" src="images/CardBack' + player + '.png"></img> '
+    }
+    return out
 }
 
 function makeMove(card) {
@@ -78,37 +73,28 @@ function makeMove(card) {
         var lastPlayedCardColor = $(".playedCards").children().attr("style").split(":")[1].replace(";", "")
     }
     if (cardVal == lastPlayedCardVal || cardColor == lastPlayedCardColor) {
-        $.post('/app/playedCard', { 
-            value: cardVal,
-            color: cardColor,
-            id: card.id
-            }, (data, status) => {
-                data = JSON.parse(data);
-                if (data[0] == "Remove") {
-                    $(".playedCards").children(".card").remove()
-                    $("#" + card.id).remove()
-                    $(".playedCards").append(data[1])
-                } 
-                else if (data == -1) {
-                    alert("Something went wrong with the server, try reloading the page");
-                }
-        })
+        socket.emit("cardPlayed", [cardVal, cardColor, card.id])
     }
 }
 
+socket.on("playerDisconnected", () => {
+    socket.emit("getGame")
+})
+
 function createLobby() {
-    $.post('/app/createLobby',
-    (data, status) => {
-        alert(data)
-        window.location.href = '/app/uno.html';
-        setInterval(getGame, 500)
-    })
+    socket.emit("createLobby", $('#lobbyCreateID').val())
 }
 
+socket.on("lobbyCreated", () => {
+    alert("Lobby Created")
+    window.location.href = '/app/uno.html';
+})
+
+socket.on("lobbyJoined", () => {
+    alert("Lobby Joined")
+    window.location.href = '/app/uno.html';
+})
+
 function joinLobby() {
-    $.post('/app/joinLobby',
-    (data, status) => {
-        alert(data)
-        window.location.href = '/app/uno.html';
-    })
+    socket.emit("joinLobby", $('#lobbyJoinID').val())
 }
