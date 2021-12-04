@@ -108,6 +108,7 @@ body {
     margin-left: -35px;
     margin-right: -35px;
     user-select: none;
+    letter-spacing: -2px;
 }
 
 .topLeftText {
