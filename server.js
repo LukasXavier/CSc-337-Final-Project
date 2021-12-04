@@ -12,14 +12,18 @@ const mongoose = require('mongoose');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const multer = require('multer');
+const socketio = require('socket.io');
 
 // sets up express and the multer image path
 const app = express();
 const upload = multer({ dest: __dirname + '/public_html/app/images/pfp'} );
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+const http = require('http');
+const server = http.createServer(app);
+const io = socketio(server);
 
 const db  = mongoose.connection;
 const mongoDBURL = 'mongodb://127.0.0.1/Uno'
@@ -44,6 +48,142 @@ var Lobby = mongoose.model("Lobbies", LobbySchema);
 
 mongoose.connect(mongoDBURL, { useNewUrlParser: true });
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+
+lobbies = {}
+roomCodes = {}
+playerCount = 1
+test = null
+
+io.on('connection', socket => {
+    socket.on("createLobby", (lobbyID) => {
+        var newDeck = shuffleDeck();
+        var newLobby = new Lobby({
+            deck : {
+                played : [],
+                remaining : newDeck
+            },
+            player0 : drawCard(7, newDeck),
+            player1 : [],
+            player2 : [],
+            player3 : [],
+            turn : 0,
+            direction : 1    
+        });
+        newLobby.save( (err) => {
+            if (err) console.log('ERROR CREATING LOBBY')
+            else {
+                roomCodes[lobbyID] = newLobby.id
+                test = lobbyID
+                socket.emit("lobbyCreated", lobbyID)
+            }
+        })
+    })
+
+    socket.on("getGame", () => {
+        if (lobbies[test] == null) {
+            lobbies[test] = []
+        }
+        if (!lobbies[test].includes(socket.id)) {
+            lobbies[test].push(socket.id)
+            socket.join(test)
+        }
+        console.log(lobbies[test])
+        for (let index = 0; index < lobbies[test].length; index++) {
+            getState(index, test)
+        }
+    })
+
+    function getState(playerNum, lobbyID) {
+        Lobby.findOne({_id: roomCodes[lobbyID]}).exec( (err, result) => {
+            if (err || !result) {
+                console.log("COULD NOT FIND LOBBY")
+            } else {
+                var players = getPlayers(result, playerNum)
+                state = [generateHand(players[0]),
+                        playedCard(result.deck.played.pop()),
+                        players[1].length,
+                        players[2].length,
+                        players[3].length]
+                io.to(lobbies[lobbyID][playerNum]).emit("receiveGame", state)
+            }
+        });
+    }
+
+    socket.on('disconnect', () => {
+        /*if (lobbies[test] == null) {
+            console.log("TEST")
+            return
+        }
+        lobbies[test].splice(0, 1, socket.id)
+        io.to(test).emit("playerDisconnected")*/
+    }) 
+
+    socket.on("joinLobby", (lobbyID) => {
+        Lobby.findOne({_id: roomCodes[lobbyID]}).exec( (err, result) => {
+            if (err) {
+                console.log("Error Joining Lobby");
+            }
+            else {
+                if (playerCount == 1) {
+                    result.player1 = drawCard(7, result.deck.remaining)
+                }
+                else if (playerCount == 2) {
+                    result.player2 = drawCard(7, result.deck.remaining)
+                }
+                else if (playerCount == 3) {
+                    result.player3 = drawCard(7, result.deck.remaining)
+                }
+                playerCount++
+                result.save( (err) => {
+                    if (err) console.log('ERROR FINDING LOBBY')
+                    else {
+                        socket.emit("lobbyJoined")
+                    }
+                })
+            }
+        })
+    })
+
+    socket.on("cardPlayed", (data) =>{
+        var playerNum = lobbies[test].indexOf(socket.id)
+        var value = data[0];
+        var color = data[1];
+        var cardID = data[2].substring(4);
+        console.log(cardID)
+        Lobby.findOne({_id: roomCodes[test]}).exec( (err, result) => {
+            if (err || !result) {
+                console.log("ERROR PLAYING CARD")
+            } else {
+                console.log("TURN " + result.turn)
+                console.log("PLAYER " + playerNum)
+                if (result.turn == playerNum) {
+                    var curPlayer = "player" + playerNum
+                    var curCard = "" + color + " " + value + " " + cardID
+                    Lobby.findOneAndUpdate({_id: roomCodes[test]}, {$pull: {[curPlayer] : curCard}}).exec( (err) => {
+                        if (err) {
+                            console.log("ERROR FINDING CARD")
+                        } else {
+                            result.deck.played.push("" + color + " " + value + " " + cardID);
+                            result.turn = (result.turn + 1) % lobbies[test].length;
+                            console.log("LEN " + lobbies[test].length)
+                            result.save((err) => {
+                                if (err) {
+                                    console.log("ERROR SAVING MOVE")
+                                } else {
+                                    getState(0, test)
+                                    getState(1, test)
+                                    getState(2, test)
+                                    getState(3, test)
+                                }
+                            });
+                        }
+                    });
+                } 
+            }
+        });
+    })
+
+})
 
 var cardCount = 0;
 app.get('/app/draw', (req, res) => {
@@ -88,30 +228,6 @@ function getPlayers(result, playerNum) {
         return [result.player3, result.player0, result.player1, result.player2]
     }
 }
-
-app.get('/app/cards', (req, res) => {
-    var c = req.cookies;
-    if (c && c.lobby) {
-        Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
-            if (err || !result) {
-                res.end(JSON.stringify(-1));
-            } else {
-                var players = getPlayers(result, c.lobby.player)
-                var retVal = JSON.stringify(
-                    [
-                        generateHand(players[0]),
-                        playedCard(result.deck.played.pop()),
-                        players[1].length,
-                        players[2].length,
-                        players[3].length
-                    ]);
-                res.end(retVal);
-            }
-        });
-    } else {
-        res.end(JSON.stringify(-1));
-    }
-});
 
 function generateHand(cards) {
     res = [];
@@ -198,52 +314,6 @@ function playedCard(card) {
     return newCard;
 }
 
-app.post('/app/createLobby', (req, res) => {
-    var newDeck = shuffleDeck();
-    var newLobby = new Lobby({
-        deck : {
-            played : [],
-            remaining : newDeck
-        },
-        player0 : drawCard(7, newDeck),
-        player1 : [],
-        player2 : [],
-        player3 : [],
-        turn : 0,
-        direction : 1    
-    });
-    newLobby.save( (err) => {
-        if (err) console.log('ERROR CREATING LOBBY')
-        else {
-            res.cookie("lobby", {id: newLobby._id, player: 0})
-            res.end("Lobby Created");
-        }
-    })
-});
-
-playerCount = 1
-
-app.post('/app/joinLobby', (req, res) => {
-    Lobby.findOne().exec( (err, result) => {
-        if (err) {
-            res.end(JSON.stringify(-1));
-        }
-        else {
-            res.cookie("lobby", {id: result._id, player: playerCount})
-            console.log(req.cookies)
-            getPlayers(result, req.cookies)[0] = drawCard(7, result.deck.remaining) // fix it
-            console.log(result)
-            playerCount++
-            result.save( (err) => {
-                if (err) console.log('ERROR FINDING LOBBY')
-                else {
-                    res.end("Lobby Joined");
-                }
-            })
-        }
-    })
-});
-
 function shuffleDeck() {
     var res = [];
     var count = 0;
@@ -323,4 +393,4 @@ app.use('/app/*', (req, res, next) => {
 app.use(express.static('public_html'));
 app.get('/*', (req, res) => { res.redirect('/app/lobby.html'); });
 
-app.listen(80, () => { console.log('server has started'); });
+server.listen(80, () => { console.log('server has started'); });
