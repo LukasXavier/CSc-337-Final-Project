@@ -26,8 +26,21 @@ function draw() {
     (data) => {
         if (data == -1) {
             alert("Something went wrong with the server, try clearing your cookies");
-        } else {
-            $("#cardGroup1").append(data);
+        } 
+    });
+}
+
+function getGame() {
+    $.get('/app/rejoinLobby',
+    (data) => {
+        if (data == -1) {
+            alert("Something went wrong with the server, try clearing your cookies");
+        } 
+        else if (data == "Lobby Full") {
+            alert("The Lobby is Full");
+        }
+        else if (data == "Lobby Joined") {
+            socket.emit("getGame")
         }
     });
 }
@@ -49,10 +62,6 @@ socket.on("receiveGame", (data) => {
     }
 })
 
-function getGame() {
-    socket.emit("getGame")
-}
-
 function opponentCard(player, amount) {
     out = ""
     for (let index = 0; index < amount; index++) {
@@ -73,28 +82,64 @@ function makeMove(card) {
         var lastPlayedCardColor = $(".playedCards").children().attr("style").split(":")[1].replace(";", "")
     }
     if (cardVal == lastPlayedCardVal || cardColor == lastPlayedCardColor) {
-        socket.emit("cardPlayed", [cardVal, cardColor, card.id])
+        $.post('/app/playedCard', { 
+            value: cardVal,
+            color: cardColor,
+            id: card.id
+            }, (data, status) => {
+                data = JSON.parse(data);
+                if (data == -1) {
+                    alert("Something went wrong with the server, try reloading the page");
+                }
+        })
     }
 }
 
-socket.on("playerDisconnected", () => {
-    socket.emit("getGame")
-})
-
 function createLobby() {
-    socket.emit("createLobby", $('#lobbyCreateID').val())
+    $.post('/app/createLobby',
+    {lobbyCode: $('#lobbyCreateID').val()},
+    (data, status) => {
+        if (data == -1) {
+            alert("Something went wrong with the server, try clearing your cookies")
+        }
+        else if (data == "Lobby Invalid") {
+            alert("Lobby Already Created")
+        }
+        else {
+            alert(data)
+            window.location.href = '/app/uno.html';
+        }
+    })
 }
-
-socket.on("lobbyCreated", () => {
-    alert("Lobby Created")
-    window.location.href = '/app/uno.html';
-})
-
-socket.on("lobbyJoined", () => {
-    alert("Lobby Joined")
-    window.location.href = '/app/uno.html';
-})
 
 function joinLobby() {
-    socket.emit("joinLobby", $('#lobbyJoinID').val())
+    $.post('/app/joinLobby',
+    {lobbyCode: $('#lobbyJoinID').val()},
+    (data, status) => {
+        if (data == -1) {
+            alert("Something went wrong with the server, try clearing your cookies");
+        } 
+        else if (data == "Lobby Full") {
+            alert("The Lobby is Full");
+        }
+        else if (data == "Lobby Invalid") {
+            alert("Lobby ID Not Created");
+        }
+        else {
+            alert(data)
+            window.location.href = '/app/uno.html';
+        }
+    })
 }
+
+socket.on("lobbyFull", () => {
+    alert("The Lobby is Full")
+})
+
+socket.on("clearCookie", () => {
+    $.post('/app/clearCookie')
+})
+
+socket.on("playerDisconnected", () => {
+    $.post('/app/playerLeft')
+})

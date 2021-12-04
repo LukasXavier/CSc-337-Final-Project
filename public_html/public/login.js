@@ -14,7 +14,7 @@
     },
     (data) => {
         if (data == -1) {
-            alert("Unknown User");
+            alert("Invalid Username or Password");
         } else {
             alert("Logged In");
             window.location.href = '/app/lobby.html';
