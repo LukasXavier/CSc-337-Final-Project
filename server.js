@@ -24,6 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 const http = require('http');
+const { boolean } = require('webidl-conversions');
 const server = http.createServer(app);
 const io = socketio(server);
 io.use(ioCookieParser());
@@ -59,10 +60,18 @@ io.on('connection', socket => {
             socket.emit("lobbyFull")
             return
         }
-
         for (let index = 0; index < 4; index++) {
             getState(index, curCookie.lobby.id)
         }
+        Lobby.findOne({_id: curCookie.lobby.id}).exec( (err, result) => {
+            if (err || !result) {
+                return;
+            } else if (!result.gameStarted) {
+                if (curCookie.lobby.isHost) {
+                    socket.emit("startGameButton")
+                }
+            }
+        });
     })
 
     socket.on("disconnect", () => {
@@ -73,7 +82,6 @@ io.on('connection', socket => {
         if (lobbies[c.lobby.id] == null) {
             return
         }
-        
         Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
             if (err || !result) {
                 console.log("COULD NOT FIND LOBBY")
@@ -108,9 +116,20 @@ io.on('connection', socket => {
                     if (err) {
                         console.log("COULD NOT SAVE LOBBY")
                     } else {
-                        lobbies[c.lobby.id].forEach(s => {
-                            socket.to(s).emit("playerDisconnected")
-                        });
+                        var newHostFound = false;
+                        for (let i = 0; i < lobbies[c.lobby.id].length; i++) {
+                            if (lobbies[c.lobby.id][i] == null) {
+                                continue;
+                            }
+                            else if (!newHostFound) {
+                                socket.to(lobbies[c.lobby.id][i]).emit("makeNewHost")
+                                socket.to(lobbies[c.lobby.id][i]).emit("startGameButton")
+                                newHostFound = true;
+                            }
+                            else {
+                                socket.to(lobbies[c.lobby.id][i]).emit("playerDisconnected")
+                            }
+                        }
                     }
                 });
             }
@@ -152,7 +171,8 @@ var LobbySchema = new mongoose.Schema({
     player3 : [String],
     deck: {played: [String], remaining: [String]},
     turn: Number,
-    direction: Number
+    direction: Number,
+    gameStarted: Boolean
 });
 var Lobby = mongoose.model("Lobbies", LobbySchema);
 
@@ -166,7 +186,7 @@ app.get('/app/draw', (req, res) => {
         Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
             if (err || !result) {
                 res.end(JSON.stringify(-1));
-            } else {
+            } else if (result.gameStarted) {
                 if (result.deck.remaining.length == 0) {
                     result.deck.remaining = shuffleDeck();
                     var lastCard = result.deck.played.pop();
@@ -185,6 +205,9 @@ app.get('/app/draw', (req, res) => {
                         res.end("Draw");
                     }
                 });
+            }
+            else {
+                res.end();
             }
         });
     } else {
@@ -253,7 +276,7 @@ app.post('/app/playedCard', (req, res) => {
         Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
             if (err || !result) {
                 res.end(JSON.stringify(-1));
-            } else {
+            } else if (result.gameStarted) {
                 if (result.turn == c.lobby.player) {
                     var color = req.body.color;
                     var value = req.body.value;
@@ -291,19 +314,22 @@ app.post('/app/playedCard', (req, res) => {
                     res.end(JSON.stringify(["Keep"]));
                 }
             }
+            else {
+                res.end();
+            }
         });
     }
 });
 
-app.post('/app/playerLeft', (req, res) => {
+app.get('/app/playerLeft', (req, res) => {
     var c = req.cookies
     getState(c.lobby.player, c.lobby.id) 
     res.end()
 })
 
-app.post('/app/clearCookie', (req, res) => {
+app.get('/app/clearCookie', (req, res) => {
     var c = req.cookies
-    res.cookie("lobby", {id: null, player: null})
+    res.cookie("lobby", {id: null, player: null, isHost: null})
     res.end()
 })
 
@@ -336,7 +362,8 @@ app.post('/app/createLobby', (req, res) => {
         player2 : [],
         player3 : [],
         turn : 0,
-        direction : 1    
+        direction : 1,
+        gameStarted: false
     });
     newLobby.save( (err) => {
         if (err) {
@@ -344,7 +371,7 @@ app.post('/app/createLobby', (req, res) => {
         }
         else {
             lobbyCodes[req.body.lobbyCode] = newLobby._id
-            res.cookie("lobby", {id: newLobby._id, player: 0})
+            res.cookie("lobby", {id: newLobby._id, player: 0, isHost: true})
             res.end("Lobby Created");
         }
     })
@@ -363,7 +390,7 @@ app.post('/app/joinLobby', (req, res) => {
         else if (!result) {
             res.end("Lobby Invalid");
         }
-        else {
+        else if (!result.gameStarted) {
             var playerCount = 0
             if (lobbies[result._id] == null) {
                 playerCount = 0
@@ -381,7 +408,7 @@ app.post('/app/joinLobby', (req, res) => {
             if (playerCount >= 4) {
                 res.end("Lobby Full")
             }
-            res.cookie("lobby", {id: lobbyCodes[req.body.lobbyCode], player: playerCount})
+            res.cookie("lobby", {id: lobbyCodes[req.body.lobbyCode], player: playerCount, isHost: false})
             if (playerCount == 0) {
                 result.player0 = drawCard(7, result.deck.remaining)
             }
@@ -401,6 +428,9 @@ app.post('/app/joinLobby', (req, res) => {
                 }
             })
         }
+        else {
+            res.end("Game Started");
+        }
     })
 });
 
@@ -410,7 +440,7 @@ app.get('/app/rejoinLobby', (req, res) => {
         if (err || !result) {
             res.end(JSON.stringify(-1));
         }
-        else {
+        else if (!result.gameStarted) {
             var playerCount = 0
             if (lobbies[result._id] == null) {
                 playerCount = 0
@@ -425,7 +455,7 @@ app.get('/app/rejoinLobby', (req, res) => {
                     }
                 }
             }
-            res.cookie("lobby", {id: result._id, player: playerCount})
+            res.cookie("lobby", {id: result._id, player: playerCount, isHost: false})
             if (playerCount == 0) {
                 result.player0 = drawCard(7, result.deck.remaining)
             }
@@ -445,6 +475,34 @@ app.get('/app/rejoinLobby', (req, res) => {
                 if (err) console.log('ERROR FINDING LOBBY')
                 else {
                     res.end("Lobby Joined");
+                }
+            })
+        }
+        else {
+            res.end("Game Started");
+        }
+    })
+});
+
+app.get('/app/makeHost', (req, res) => {
+    var c = req.cookies
+    res.cookie("lobby", {id: c.lobby.id, player: c.lobby.player, isHost: true})
+    getState(c.lobby.player, c.lobby.id) 
+    res.end();
+});
+
+app.get('/app/startGame', (req, res) => {
+    var c = req.cookies
+    Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
+        if (err || !result) {
+            res.end(JSON.stringify(-1));
+        }
+        else {
+            result.gameStarted = true;
+            result.save( (err) => {
+                if (err) {res.end(JSON.stringify(-1));}
+                else {
+                    res.end("Game Started");
                 }
             })
         }

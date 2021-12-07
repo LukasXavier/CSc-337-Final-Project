@@ -42,6 +42,9 @@ function getGame() {
         else if (data == "Lobby Joined") {
             socket.emit("getGame")
         }
+        else if (data == "Game Started") {
+            alert("Cannot Join: The Game Has Already Been Started");
+        }
     });
 }
 
@@ -59,6 +62,14 @@ socket.on("receiveGame", (data) => {
 
     for (let i = 2; i < 5; i++) {
         $("#cardGroup" + i).append(opponentCard(i, data[i]));
+    }
+    if (data[0].length == 0) {
+        alert("You Win!")
+    }
+    for (let i = 2; i < 5; i++) {
+        if (data[6] && data[i] == 0) {
+            alert("You Lose!")
+        }
     }
 })
 
@@ -87,7 +98,6 @@ function makeMove(card) {
             color: cardColor,
             id: card.id
             }, (data, status) => {
-                data = JSON.parse(data);
                 if (data == -1) {
                     alert("Something went wrong with the server, try reloading the page");
                 }
@@ -105,12 +115,36 @@ function createLobby() {
         else if (data == "Lobby Invalid") {
             alert("Lobby Already Created")
         }
-        else {
+        else if (data == "Lobby Created") {
             alert(data)
             window.location.href = '/app/uno.html';
         }
     })
 }
+
+function startGame() {
+    $.get('/app/startGame',
+    (data, status) => {
+        if (data == -1) {
+            alert("Something went wrong with the server, try clearing your cookies")
+        }
+        else if (data == "Game Started") {
+            $(".playedCards").children("#gameStart").remove();
+        }
+    })
+}
+
+socket.on("startGameButton", () => {
+    if ($(".playedCards").children().length == 0) {
+        var button = '<input type="button" id="gameStart" value="Start Game" onclick="startGame()" ' 
+                     + 'style="height:30px; width:100px;">'
+        $(".playedCards").append(button);
+    }
+})
+
+socket.on("hostLeft", () => {
+    $(".playedCards").children().remove();
+})
 
 function joinLobby() {
     $.post('/app/joinLobby',
@@ -125,6 +159,9 @@ function joinLobby() {
         else if (data == "Lobby Invalid") {
             alert("Lobby ID Not Created");
         }
+        else if (data == "Game Started") {
+            alert("Cannot Join: The Game Has Already Been Started");
+        }
         else {
             alert(data)
             window.location.href = '/app/uno.html';
@@ -137,9 +174,13 @@ socket.on("lobbyFull", () => {
 })
 
 socket.on("clearCookie", () => {
-    $.post('/app/clearCookie')
+    $.get('/app/clearCookie')
 })
 
 socket.on("playerDisconnected", () => {
-    $.post('/app/playerLeft')
+    $.get('/app/playerLeft')
+})
+
+socket.on("makeNewHost", () => {
+    $.get('/app/makeHost')
 })

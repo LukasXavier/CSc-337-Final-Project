@@ -35,11 +35,11 @@ body {
 }
 
 .playedCards {
-    width: 50%;
+    width: 130px;
+    height: 200px;
     left: calc(-50vw + 50%);
     right: calc(-50vw + 50%);
     margin: auto;
-    height: 10%;
     position: fixed;
     top: 38%;
     margin-bottom: 10%;
