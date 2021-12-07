@@ -14,6 +14,7 @@ const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const socketio = require('socket.io');
 const ioCookieParser = require('socket.io-cookie-parser');
+const crypto = require('crypto');
 
 // sets up express and the multer image path
 const app = express();
@@ -138,7 +139,8 @@ const mongoDBURL = 'mongodb://127.0.0.1/Uno'
 
 var UserSchema = new mongoose.Schema({
     username: String,
-    password: String,
+    salt: String,
+    hash: String,
     stats: {wins: Number, losses: Number, streak: Number}
 });
 var User = mongoose.model("Users", UserSchema);
@@ -471,15 +473,34 @@ function drawCard(num, deck) {
     return res;
 }
 
+function getHash(password, salt) {
+    var cryptoHash = crypto.createHash('sha512');
+    var toHash = password + salt;
+    var hash = cryptoHash.update(toHash, 'utf-8').digest('hex');
+    return hash;
+}
+
+function isPasswordCorrect(account, password) {
+    var hash = getHash(password, account.salt);
+    return account.hash == hash;
+}
+
 app.post('/login', (req, res) => {
-    var user = {username: req.body.username, password: req.body.password}
+    var user = {username: req.body.username}
     User.findOne(user).exec( (err, result) => {
         if (err || !result) {
             res.end(JSON.stringify(-1));
         } else {
-            addSession(req.body.username);
-            res.cookie("username", req.body.username);
-            res.end("LOGIN");
+            var password = req.body.password;
+            var correct = isPasswordCorrect(result, password);
+            if (correct) {
+                var sessionKey = addSession(req.body.username);
+                res.cookie("username", req.body.username);
+                res.cookie("sessionKey", sessionKey);
+                res.end("LOGIN");
+            } else {
+                res.end(JSON.stringify(-1));
+            }
         }
     });
 });
@@ -489,7 +510,14 @@ app.post('/createUser', (req, res) => {
         if (err || result) {
             return res.end("User already exist");
         } else {
-            var temp = new User(req.body);
+            var salt = Math.floor(Math.random() * 1000000000000);
+            var hash = getHash(req.body.password, salt);
+            var temp = new User({
+                'username': req.body.username,
+                'salt': salt,
+                'hash': hash,
+                'stats': {wins: 0, losses: 0, streak: 0}
+            });
             temp.save((err) => {
                 err ? res.end("db error occurred") : res.end("User Created!");
             });
@@ -503,7 +531,7 @@ const LOGIN_TIME = 10*minute;
 
 function filterSessions() {
     for (x in sessions) {
-        if (sessions[x] + LOGIN_TIME < Date.now()) {
+        if (sessions[x].time + LOGIN_TIME < Date.now()) {
             delete sessions[x];
         }
     }
@@ -511,14 +539,26 @@ function filterSessions() {
 setInterval(filterSessions, 2000);
 
 
-function addSession(username) { sessions[username] = Date.now(); }
+function addSession(username, sessionKey) {
+    if (username in sessions) {
+        sessions[username] = {'key': sessionKey, 'time': Date.now()};
+        return sessionKey;
+    } else {
+        let sessionKey = Math.floor(Math.random() * 1000)
+        sessions[username] = {'key': sessionKey, 'time': Date.now()};
+        return sessionKey;
+    }
+}
 
+function isValidSession(username, sessionKey) {
+    return username in sessions && sessions[username].key == sessionKey;
+}
 
 app.use('/app/*', (req, res, next) => {
     var c = req.cookies;
-    if (c && c.username) {
-        if (c.username in sessions) {
-            addSession(c.username);
+    if (c && c.username && c.sessionKey) {
+        if (isValidSession(c.username, c.sessionKey)) {
+            addSession(c.username, c.sessionKey);
             next();
         } else { res.redirect('/public/index.html'); }
     } else { res.redirect('/public/index.html'); }
