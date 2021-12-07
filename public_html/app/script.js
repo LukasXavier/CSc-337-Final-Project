@@ -61,14 +61,35 @@ socket.on("receiveGame", (data) => {
     $(".playedCards").append(data[1]);
 
     for (let i = 2; i < 5; i++) {
-        $("#cardGroup" + i).append(opponentCard(i, data[i]));
+        if (data[i][0] == null) {
+            continue;
+        }
+        $("#cardGroup" + i).append(opponentCard(i, data[i].length));
     }
     if (data[0].length == 0) {
         alert("You Win!")
+        $.post('/app/gameOver', { 
+            won: true
+            }, (data, status) => {
+                if (data == -1) {
+                    alert("Something went wrong with the server, try reloading the page");
+                }
+        })
+        window.location.href = '/app/lobby.html';
+        return;
     }
     for (let i = 2; i < 5; i++) {
-        if (data[6] && data[i] == 0) {
+        if (data[i].length == 0) {
             alert("You Lose!")
+            $.post('/app/GameOver', { 
+                won: false
+                }, (data, status) => {
+                    if (data == -1) {
+                        alert("Something went wrong with the server, try reloading the page");
+                    }
+            })
+            window.location.href = '/app/lobby.html';
+            return;
         }
     }
 })
@@ -130,6 +151,9 @@ function startGame() {
         }
         else if (data == "Game Started") {
             $(".playedCards").children("#gameStart").remove();
+        }
+        else {
+            alert(data)
         }
     })
 }
