@@ -90,16 +90,16 @@ io.on('connection', socket => {
                 lobbies[c.lobby.id] = remove(lobbies[c.lobby.id], socket.id)
                 var curPlayer = c.lobby.player
                 if (curPlayer == 0) {
-                    result.player0 = []
+                    result.player0 = [null]
                 }
                 if (curPlayer == 1) {
-                    result.player1 = []
+                    result.player1 = [null]
                 }
                 else if (curPlayer == 2) {
-                    result.player2 = []
+                    result.player2 = [null]
                 }
                 else if (curPlayer == 3) {
-                    result.player3 = []
+                    result.player3 = [null]
                 }
                 if (result.turn == curPlayer) {
                     var i = 0
