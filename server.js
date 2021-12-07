@@ -238,9 +238,10 @@ function getState(playerNum, lobbyID) {
             var players = getPlayers(result, playerNum)
             state = [generateHand(players[0]),
                     playedCard(result.deck.played.pop()),
-                    players[1].length,
-                    players[2].length,
-                    players[3].length]
+                    players[1],
+                    players[2],
+                    players[3],
+                    result.gameStarted]
             io.to(lobbies[lobbyID][playerNum]).emit("receiveGame", state)
         }
     });
@@ -333,6 +334,14 @@ app.get('/app/clearCookie', (req, res) => {
     res.end()
 })
 
+app.post('/app/gameOver', (req, res) => {
+    var c = req.cookies
+    var won = req.body.won
+    // Won is true if they won the game and false if they lost
+    // Save their win or loss in the stats database
+    res.end()
+})
+
 function playedCard(card) {
     if (!card) { return ""; }
     [color, value] = card.split(' ');
@@ -358,9 +367,9 @@ app.post('/app/createLobby', (req, res) => {
             remaining : newDeck
         },
         player0 : drawCard(7, newDeck),
-        player1 : [],
-        player2 : [],
-        player3 : [],
+        player1 : [null],
+        player2 : [null],
+        player3 : [null],
         turn : 0,
         direction : 1,
         gameStarted: false
@@ -498,7 +507,12 @@ app.get('/app/startGame', (req, res) => {
             res.end(JSON.stringify(-1));
         }
         else {
-            result.gameStarted = true;
+            if (size(lobbies[c.lobby.id]) >= 2) {
+                result.gameStarted = true;
+            }
+            else {
+                return res.end("Not Enough Players To Start Game")
+            }
             result.save( (err) => {
                 if (err) {res.end(JSON.stringify(-1));}
                 else {
