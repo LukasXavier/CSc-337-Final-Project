@@ -9,13 +9,22 @@
  *      and jquery get/post request
  */
 
+// necessary for socket.io on the client side.
 const socket = io();
 
+/**
+ * This is a simple animation that raising and lowers 'highlighted' cards
+ * @param {String} state - Either 'on' or 'off
+ * @param {DOM} card - the DOM object of the card
+ */
 function followMouse(state, card) {
     state == "on" ? y = -50 : y = 0;
     $("#" + card.id).css("transform", "translateY(" + y + "px)");
 }
 
+/**
+ * queries the server to draw a card
+ */
 function draw() {
     $.get('/app/draw',
     (data) => {
@@ -25,6 +34,9 @@ function draw() {
     });
 }
 
+/**
+ * the onload function, asks the server about the lobby state it is joining
+ */
 function getGame() {
     $.get('/app/rejoinLobby',
     (data) => {
@@ -43,24 +55,29 @@ function getGame() {
     });
 }
 
+// Used to communicate a change in the game state using sockets
 socket.on("receiveGame", (data) => {
+    // clears all players hands
     $("#cardGroup1").children(".card").remove();
     $("#cardGroup2").children(".cardBack2").remove();
     $("#cardGroup3").children(".cardBack3").remove();
     $("#cardGroup4").children(".cardBack4").remove();
+    // adds back the players hand
     data[0].forEach(card => { 
         $("#cardGroup1").append(card); 
     });
-    
+    // updates the last played pile
     $(".playedCards").children(".card").remove();
     $(".playedCards").append(data[1]);
 
+    // populates the other players with the amount of cards they have
     for (let i = 2; i < 5; i++) {
         if (data[i][0] == null) {
             continue;
         }
         $("#cardGroup" + i).append(opponentCard(i, data[i].length));
     }
+    // Used to communicate the winner and looser of the game
     if (data[0].length == 0) {
         alert("You Win!")
         $.post('/app/gameOver', { 
@@ -89,6 +106,12 @@ socket.on("receiveGame", (data) => {
     }
 })
 
+/**
+ * Used to generate the other players hand
+ * @param {String} player - the player number (2,3,4)
+ * @param {Number} amount - the amount of cards to draw
+ * @returns A HTML string of X amount of cards
+ */
 function opponentCard(player, amount) {
     out = ""
     for (let index = 0; index < amount; index++) {
@@ -97,30 +120,40 @@ function opponentCard(player, amount) {
     return out
 }
 
+/**
+ * asks the server if it can play this card or not
+ * @param {DOM} card - the DOM element that contains the card you want to play
+ */
 function makeMove(card) {
     var cardVal = $("#" + card.id).children()[0].innerText
     var cardColor = $("#" + card.id).attr("style").split(" ")[1].replace(";", "")
+    // lets the player play any card if there is no previously played
     if ($(".playedCards").children().length == 0) {
         var lastPlayedCardVal = cardVal
         var lastPlayedCardColor = cardColor
     }
     else {
+        // gets the last played cards color and value
         var lastPlayedCardVal = $(".playedCards").children()[0].innerText.split("\n")[0]
         var lastPlayedCardColor = $(".playedCards").children().attr("style").split(":")[1].replace(";", "")
     }
+    // if both are the same time ask the server to play the card
     if (cardVal == lastPlayedCardVal || cardColor == lastPlayedCardColor) {
         $.post('/app/playedCard', { 
             value: cardVal,
             color: cardColor,
             id: card.id
-            }, (data, status) => {
+            }, (data) => {
                 if (data == -1) {
                     alert("Something went wrong with the server, try reloading the page");
                 }
-        })
+        });
     }
 }
 
+/**
+ * asks the server to make a new lobby
+ */
 function createLobby() {
     $.post('/app/createLobby',
     {lobbyCode: $('#lobbyCreateID').val()},
@@ -138,6 +171,9 @@ function createLobby() {
     })
 }
 
+/**
+ * Tells the server to start the game
+ */
 function startGame() {
     $.get('/app/startGame',
     (data, status) => {
@@ -153,6 +189,9 @@ function startGame() {
     })
 }
 
+/**
+ * adds a button to the host screen allowing them to start the game
+ */
 socket.on("startGameButton", () => {
     if ($(".playedCards").children().length == 0) {
         var button = '<input type="button" id="gameStart" value="Start Game" onclick="startGame()" ' 
@@ -161,10 +200,12 @@ socket.on("startGameButton", () => {
     }
 })
 
+// removes the last played card
 socket.on("hostLeft", () => {
     $(".playedCards").children().remove();
 })
 
+// asks the server to join a lobby
 function joinLobby() {
     $.post('/app/joinLobby',
     {lobbyCode: $('#lobbyJoinID').val()},
@@ -188,18 +229,14 @@ function joinLobby() {
     })
 }
 
-socket.on("lobbyFull", () => {
-    alert("The Lobby is Full")
-})
+// socket to tell the client the server is full
+socket.on("lobbyFull", () => { alert("The Lobby is Full"); })
 
-socket.on("clearCookie", () => {
-    $.get('/app/clearCookie')
-})
+// removes the users cookies
+socket.on("clearCookie", () => { $.get('/app/clearCookie'); })
 
-socket.on("playerDisconnected", () => {
-    $.get('/app/playerLeft')
-})
+// lets the player know that someone left and they should update their view
+socket.on("playerDisconnected", () => { $.get('/app/playerLeft'); })
 
-socket.on("makeNewHost", () => {
-    $.get('/app/makeHost')
-})
+// if the host leaves, a new one is chosen.
+socket.on("makeNewHost", () => { $.get('/app/makeHost'); })
