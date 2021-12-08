@@ -4,17 +4,12 @@
  * File: script.js
  * Assignment: Final Project
  * Course: CSc 337; Fall 21
- * Purpose: 
+ * Purpose: client side script for handling server-client request
+ *      We use a combination of socket.io (a wrapper around Websocket)
+ *      and jquery get/post request
  */
 
-/*
-108 cards
-25 each color 2 sets of (0-9, skip (@), +2, reverse (%))
-8 wild cards (4 wild cards, 4 +4 wild cards)
-*/
 const socket = io();
-cardCount = 0;
-colors = ['green', 'blue', 'red', 'yellow']
 
 function followMouse(state, card) {
     state == "on" ? y = -50 : y = 0;

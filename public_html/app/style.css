@@ -1,3 +1,12 @@
+/*
+    Author: Eric Mendoza (ericmendoza@email.arizona.edu)
+    Author: Luke Ramirez (lucasxavier@email.arizona.edu)
+    File: style.css
+    Assignment: Final Project
+    Course: CSc 337; Fall 21
+    Purpose: styling for the game page, handles displaying cards dynamically
+*/
+
 body {
     background-color: white;
     font-family: 'Gill Sans MT';
