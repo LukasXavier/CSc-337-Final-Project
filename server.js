@@ -307,30 +307,8 @@ app.post('/app/playedCard', (req, res) => {
                             while (count != nextPlayer) {
                                 if (lobbies[c.lobby.id][result.turn] == null) {
                                     result.turn = (result.turn + result.direction) % 4;
-                                    if (value == '+') {
-                                        if (result.deck.remaining.length < 2) {
-                                            result.deck.remaining = shuffleDeck();
-                                            var lastCard = result.deck.played.pop();
-                                            result.deck.played = [lastCard];                                            
-                                        }
-                                        var cards = drawCard(2, result.deck.remaining);
-                                        if (result.turn == 0 && result.player0 != [null]) {
-                                            result.player0.append(cards[0]);
-                                            result.player0.append(cards[1]);
-                                        }
-                                        if (result.turn == 1 && result.player1 != [null]) {
-                                            result.player1.append(cards[0]);
-                                            result.player1.append(cards[1]);
-                                        }
-                                        if (result.turn == 2 && result.player2 != [null]) {
-                                            result.player2.append(cards[0]);
-                                            result.player2.append(cards[1]);
-                                        }
-                                        if (result.turn == 3 && result.player3 != [null]) {
-                                            result.player3.append(cards[0]);
-                                            result.player3.append(cards[1]);
-                                        }
-                                    }
+                                    if (value == '+') { drawX(2); }
+                                    if (value == '$') { drawX(4); }
                                 } else { count++; }
                             }
                             result.save((err) => {
@@ -357,6 +335,27 @@ app.post('/app/playedCard', (req, res) => {
     }
 });
 
+function drawX(result, x) {
+    if (result.deck.remaining.length < x) {
+        result.deck.remaining = shuffleDeck();
+        var lastCard = result.deck.played.pop();
+        result.deck.played = [lastCard];
+    }
+    var cards = drawCard(x, result.deck.remaining);
+    if (result.turn == 0 && result.player0 != [null]) {
+        cards.forEach(card => { result.player0.push(card); });
+    }
+    if (result.turn == 1 && result.player1 != [null]) {
+        cards.forEach(card => { result.player0.push(card); });
+    }
+    if (result.turn == 2 && result.player2 != [null]) {
+        cards.forEach(card => { result.player0.push(card); });
+    }
+    if (result.turn == 3 && result.player3 != [null]) {
+        cards.forEach(card => { result.player0.push(card); });
+    }
+}
+
 app.get('/app/playerLeft', (req, res) => {
     var c = req.cookies;
     getState(c.lobby.player, c.lobby.id);
@@ -369,6 +368,7 @@ app.get('/app/clearCookie', (req, res) => {
     res.end();
 });
 
+// WIP: not quite sure if this works, but it should
 app.post('/app/gameOver', (req, res) => {
     var c = req.cookies;
     var won = req.body.won;
@@ -582,6 +582,12 @@ function shuffleDeck() {
             });
         });
     });
+    [0, 1, 2, 3].forEach(pile => {
+        ["$", "?"].forEach(value => {
+            res.push("black " + value + " " + count);
+            count++;
+        });
+    });
     return res.sort(()=> (Math.random() > .5) ? 1 : -1);
 }
 
@@ -591,6 +597,41 @@ function drawCard(num, deck) {
         res.push(deck.pop());
     }
     return res;
+}
+
+// WIP: connected to the thing below
+app.get('/app/stats', (req, res) => {
+    User.find().exec((err, results) => {
+        if (err || !results) {
+            res.end(JSON.stringify(-1));
+        } else {
+            res.end(JSON.stringify(getStats(results)));
+        }        
+    });
+});
+
+// FIXME: half works, bullshit call backs
+function getStats(results) {
+    var playerStats = [];
+    results.forEach(user => {
+        console.log(user);
+        Stat.findOne({_id: user.stats}).exec((err, result) => {
+            console.log(result);
+            if (err || !result) {
+                console.log("ERROR");
+            } else {
+                var playerStat = {
+                    username: user.username,
+                    wins: result.wins,
+                    losses: result.losses,
+                    streak: result.streak
+                };
+                console.log(playerStat);
+                playerStats.push(playerStat);
+            }
+        });
+    });
+    return playerStats;
 }
 
 function getHash(password, salt) {
