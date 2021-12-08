@@ -300,15 +300,18 @@ app.post('/app/playedCard', (req, res) => {
                                 result.direction == 1 ? result.direction = 3 : result.direction = 1;
                             }
                             result.deck.played.push("" + color + " " + value + " " + cardID);
+                            // somewhere in this block is broken for drawX()
                             var count = 0;
                             var nextPlayer = 1;
+                            // I can't really tell if this works or not, it didn't seem to work with 2 players but maybe more?
                             if (value == '#') { nextPlayer = 2; }
                             result.turn = (result.turn + result.direction) % 4;
                             while (count != nextPlayer) {
                                 if (lobbies[c.lobby.id][result.turn] == null) {
                                     result.turn = (result.turn + result.direction) % 4;
-                                    if (value == '+') { drawX(2); }
-                                    if (value == '$') { drawX(4); }
+                                    // I think it's something with who's turn it is and who the drawn cards are going to
+                                    if (value == '+') { drawX(result, 2); }
+                                    if (value == '$') { drawX(result, 4); }
                                 } else { count++; }
                             }
                             result.save((err) => {
@@ -335,6 +338,7 @@ app.post('/app/playedCard', (req, res) => {
     }
 });
 
+// helper function for +2 and +4 cards
 function drawX(result, x) {
     if (result.deck.remaining.length < x) {
         result.deck.remaining = shuffleDeck();
