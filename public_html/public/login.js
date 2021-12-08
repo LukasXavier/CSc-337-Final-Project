@@ -1,10 +1,10 @@
 /**
  * Author: Eric Mendoza (ericmendoza@email.arizona.edu)
  * Author: Luke Ramirez (lucasxavier@email.arizona.edu)
- * File: server.js
+ * File: login.js
  * Assignment: Final Project
  * Course: CSc 337; Fall 21
- * Purpose: 
+ * Purpose: handles the landing page requests
  */
  function login() {
     $.post('/login',

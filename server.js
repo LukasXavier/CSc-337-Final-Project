@@ -11,18 +11,17 @@
 const mongoose = require('mongoose');
 const express = require('express');
 const cookieParser = require('cookie-parser');
-const multer = require('multer');
 const socketio = require('socket.io');
 const ioCookieParser = require('socket.io-cookie-parser');
 const crypto = require('crypto');
 
 // sets up express and the multer image path
 const app = express();
-const upload = multer({ dest: __dirname + '/public_html/app/images/pfp'} );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// socket.io setup
 const http = require('http');
 const { boolean } = require('webidl-conversions');
 const server = http.createServer(app);
@@ -33,42 +32,42 @@ lobbies = {}
 lobbyCodes = {}
 
 function size(array) {
-    var size = 0
+    var size = 0;
     array.forEach(element => {
         if (element != null) {
-            size++
+            size++;
         }
     });
-    return size
+    return size;
 }
 
 io.on('connection', socket => {
     socket.on("getGame", () =>{
         var curCookie = socket.request.cookies;   
         if (lobbies[curCookie.lobby.id] == null) {
-            lobbies[curCookie.lobby.id] = [socket.id, null, null, null]
+            lobbies[curCookie.lobby.id] = [socket.id, null, null, null];
         }
         else if (size(lobbies[curCookie.lobby.id]) != 4) {
             for (let index = 0; index < 4; index++) {
                 if (lobbies[curCookie.lobby.id][index] == null) {
-                    lobbies[curCookie.lobby.id][index] = socket.id
+                    lobbies[curCookie.lobby.id][index] = socket.id;
                     break;
                 }
             }
         }
         else {
-            socket.emit("lobbyFull")
-            return
+            socket.emit("lobbyFull");
+            return;
         }
         for (let index = 0; index < 4; index++) {
-            getState(index, curCookie.lobby.id)
+            getState(index, curCookie.lobby.id);
         }
         Lobby.findOne({_id: curCookie.lobby.id}).exec( (err, result) => {
             if (err || !result) {
                 return;
             } else if (!result.gameStarted) {
                 if (curCookie.lobby.isHost) {
-                    socket.emit("startGameButton")
+                    socket.emit("startGameButton");
                 }
             }
         });
@@ -77,44 +76,44 @@ io.on('connection', socket => {
     socket.on("disconnect", () => {
         var c = socket.request.cookies;  
         if (c.lobby == null) {
-            return
+            return;
         }
         if (lobbies[c.lobby.id] == null) {
-            return
+            return;
         }
         Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
             if (err || !result) {
-                console.log("COULD NOT FIND LOBBY")
+                console.log("COULD NOT FIND LOBBY");
             } else {
-                socket.to(socket.id).emit("clearCookie")
-                lobbies[c.lobby.id] = remove(lobbies[c.lobby.id], socket.id)
-                var curPlayer = c.lobby.player
+                socket.to(socket.id).emit("clearCookie");
+                lobbies[c.lobby.id] = remove(lobbies[c.lobby.id], socket.id);
+                var curPlayer = c.lobby.player;
                 if (curPlayer == 0) {
-                    result.player0 = [null]
+                    result.player0 = [null];
                 }
                 if (curPlayer == 1) {
-                    result.player1 = [null]
+                    result.player1 = [null];
                 }
                 else if (curPlayer == 2) {
-                    result.player2 = [null]
+                    result.player2 = [null];
                 }
                 else if (curPlayer == 3) {
-                    result.player3 = [null]
+                    result.player3 = [null];
                 }
                 if (result.turn == curPlayer) {
-                    var i = 0
+                    var i = 0;
                     while (lobbies[c.lobby.id][result.turn] == null) {
                         if (i == 4) {
-                            lobbies[c.lobby.id] = null
-                            return
+                            lobbies[c.lobby.id] = null;
+                            return;
                         }
-                        result.turn = (result.turn + 1) % 4
-                        i++
+                        result.turn = (result.turn + 1) % 4;
+                        i++;
                     }
                 }
                 result.save( (err) => {
                     if (err) {
-                        console.log("COULD NOT SAVE LOBBY")
+                        console.log("COULD NOT SAVE LOBBY");
                     } else {
                         var newHostFound = false;
                         for (let i = 0; i < lobbies[c.lobby.id].length; i++) {
@@ -122,12 +121,12 @@ io.on('connection', socket => {
                                 continue;
                             }
                             else if (!newHostFound) {
-                                socket.to(lobbies[c.lobby.id][i]).emit("makeNewHost")
-                                socket.to(lobbies[c.lobby.id][i]).emit("startGameButton")
+                                socket.to(lobbies[c.lobby.id][i]).emit("makeNewHost");
+                                socket.to(lobbies[c.lobby.id][i]).emit("startGameButton");
                                 newHostFound = true;
                             }
                             else {
-                                socket.to(lobbies[c.lobby.id][i]).emit("playerDisconnected")
+                                socket.to(lobbies[c.lobby.id][i]).emit("playerDisconnected");
                             }
                         }
                     }
@@ -138,31 +137,38 @@ io.on('connection', socket => {
 })
 
 function remove(array, rem) {
-    var newArray = []
+    var newArray = [];
     for (let i = 0; i < 4; i++) {
         if (array[i] == null) {
             continue;
         }
         else if (array[i] == rem) {
-            newArray[i] == null
+            newArray[i] == null;
         }
         else {
-            newArray[i] = array[i]
+            newArray[i] = array[i];
         }
     }
-    return newArray
+    return newArray;
 }
 
 const db  = mongoose.connection;
-const mongoDBURL = 'mongodb://127.0.0.1/Uno'
+const mongoDBURL = 'mongodb://127.0.0.1/Uno';
 
 var UserSchema = new mongoose.Schema({
     username: String,
     salt: String,
     hash: String,
-    stats: {wins: Number, losses: Number, streak: Number}
+    stats: {type: mongoose.Schema.Types.ObjectId, ref: 'Stat'}
 });
 var User = mongoose.model("Users", UserSchema);
+
+var StatSchema = new mongoose.Schema({
+    wins: Number,
+    losses: Number,
+    streak: Number 
+});
+var Stat = mongoose.model("Stats", StatSchema);
 
 var LobbySchema = new mongoose.Schema({
     player0 : [String],
@@ -198,10 +204,10 @@ app.get('/app/draw', (req, res) => {
                     if (err) {
                         res.end(JSON.stringify(-1));
                     } else {
-                        getState(0, c.lobby.id)
-                        getState(1, c.lobby.id)
-                        getState(2, c.lobby.id)
-                        getState(3, c.lobby.id)
+                        getState(0, c.lobby.id);
+                        getState(1, c.lobby.id);
+                        getState(2, c.lobby.id);
+                        getState(3, c.lobby.id);
                         res.end("Draw");
                     }
                 });
@@ -217,32 +223,34 @@ app.get('/app/draw', (req, res) => {
 
 function getPlayers(result, playerNum) {
     if (playerNum == 0) {
-        return [result.player0, result.player1, result.player2, result.player3]
+        return [result.player0, result.player1, result.player2, result.player3];
     }
     else if (playerNum == 1) {
-        return [result.player1, result.player2, result.player3, result.player0]
+        return [result.player1, result.player2, result.player3, result.player0];
     }
     else if (playerNum == 2) {
-        return [result.player2, result.player3, result.player0, result.player1]
+        return [result.player2, result.player3, result.player0, result.player1];
     }
     else if (playerNum == 3) {
-        return [result.player3, result.player0, result.player1, result.player2]
+        return [result.player3, result.player0, result.player1, result.player2];
     }
 }
 
 function getState(playerNum, lobbyID) {
     Lobby.findOne({_id: lobbyID}).exec( (err, result) => {
         if (err || !result) {
-            console.log("COULD NOT FIND LOBBY")
+            console.log("COULD NOT FIND LOBBY");
         } else {
-            var players = getPlayers(result, playerNum)
-            state = [generateHand(players[0]),
-                    playedCard(result.deck.played.pop()),
-                    players[1],
-                    players[2],
-                    players[3],
-                    result.gameStarted]
-            io.to(lobbies[lobbyID][playerNum]).emit("receiveGame", state)
+            var players = getPlayers(result, playerNum);
+            state = [
+                generateHand(players[0]),
+                playedCard(result.deck.played.pop()),
+                players[1],
+                players[2],
+                players[3],
+                result.gameStarted
+            ];
+            io.to(lobbies[lobbyID][playerNum]).emit("receiveGame", state);
         }
     });
 }
@@ -282,8 +290,8 @@ app.post('/app/playedCard', (req, res) => {
                     var color = req.body.color;
                     var value = req.body.value;
                     var cardID = req.body.id.substring(4);
-                    var curPlayer = "player" + c.lobby.player
-                    var curCard = "" + color + " " + value + " " + cardID
+                    var curPlayer = "player" + c.lobby.player;
+                    var curCard = "" + color + " " + value + " " + cardID;
                     Lobby.findOneAndUpdate({_id: c.lobby.id}, {$pull: {[curPlayer] : curCard}}).exec( (err) => {
                         if (err) {
                             res.end(JSON.stringify(-1));
@@ -302,10 +310,10 @@ app.post('/app/playedCard', (req, res) => {
                                 if (err) {
                                     res.end(JSON.stringify(-1));
                                 } else {
-                                    getState(0, c.lobby.id)
-                                    getState(1, c.lobby.id)
-                                    getState(2, c.lobby.id)
-                                    getState(3, c.lobby.id)
+                                    getState(0, c.lobby.id);
+                                    getState(1, c.lobby.id);
+                                    getState(2, c.lobby.id);
+                                    getState(3, c.lobby.id);
                                     res.end("Make Move");
                                 }
                             });
@@ -323,24 +331,37 @@ app.post('/app/playedCard', (req, res) => {
 });
 
 app.get('/app/playerLeft', (req, res) => {
-    var c = req.cookies
-    getState(c.lobby.player, c.lobby.id) 
-    res.end()
-})
+    var c = req.cookies;
+    getState(c.lobby.player, c.lobby.id);
+    res.end();
+});
 
 app.get('/app/clearCookie', (req, res) => {
-    var c = req.cookies
-    res.cookie("lobby", {id: null, player: null, isHost: null})
-    res.end()
-})
+    var c = req.cookies;
+    res.cookie("lobby", {id: null, player: null, isHost: null});
+    res.end();
+});
 
 app.post('/app/gameOver', (req, res) => {
-    var c = req.cookies
-    var won = req.body.won
-    // Won is true if they won the game and false if they lost
-    // Save their win or loss in the stats database
-    res.end()
-})
+    var c = req.cookies;
+    var won = req.body.won;
+    User.findOne({username: c.username}).populate('stats').exec( (err, result) => {
+        if (err || !result) {
+            res.end(JSON.stringify(-1));
+        } else {
+            if (won) {
+                result.stats.wins += 1;
+                result.stats.streak += 1;
+            } else {
+                result.stats.losses += 1;
+                result.stats.streak = 0;
+            }
+            result.save((err) => {
+                err ? res.end(JSON.stringify(-1)) : res.end();
+            });
+        }
+    });
+});
 
 function playedCard(card) {
     if (!card) { return ""; }
@@ -357,7 +378,7 @@ function playedCard(card) {
 app.post('/app/createLobby', (req, res) => {
     if (lobbyCodes[req.body.lobbyCode] != null) {
         if (lobbies[lobbyCodes[req.body.lobbyCode]] != null) {
-            return res.end("Lobby Invalid")
+            return res.end("Lobby Invalid");
         }
     }
     var newDeck = shuffleDeck();
@@ -379,8 +400,8 @@ app.post('/app/createLobby', (req, res) => {
             res.end(JSON.stringify(-1))
         }
         else {
-            lobbyCodes[req.body.lobbyCode] = newLobby._id
-            res.cookie("lobby", {id: newLobby._id, player: 0, isHost: true})
+            lobbyCodes[req.body.lobbyCode] = newLobby._id;
+            res.cookie("lobby", {id: newLobby._id, player: 0, isHost: true});
             res.end("Lobby Created");
         }
     })
@@ -389,7 +410,7 @@ app.post('/app/createLobby', (req, res) => {
 app.post('/app/joinLobby', (req, res) => {
     if (lobbyCodes[req.body.lobbyCode] != null) {
         if (lobbies[lobbyCodes[req.body.lobbyCode]] == null) {
-            return res.end("Lobby Invalid")
+            return res.end("Lobby Invalid");
         }
     }
     Lobby.findOne({_id: lobbyCodes[req.body.lobbyCode]}).exec( (err, result) => {
@@ -400,9 +421,9 @@ app.post('/app/joinLobby', (req, res) => {
             res.end("Lobby Invalid");
         }
         else if (!result.gameStarted) {
-            var playerCount = 0
+            var playerCount = 0;
             if (lobbies[result._id] == null) {
-                playerCount = 0
+                playerCount = 0;
             }
             else {
                 for (let index = 0; index < 4; index++) {
@@ -415,23 +436,23 @@ app.post('/app/joinLobby', (req, res) => {
                 }
             }
             if (playerCount >= 4) {
-                res.end("Lobby Full")
+                res.end("Lobby Full");
             }
-            res.cookie("lobby", {id: lobbyCodes[req.body.lobbyCode], player: playerCount, isHost: false})
+            res.cookie("lobby", {id: lobbyCodes[req.body.lobbyCode], player: playerCount, isHost: false});
             if (playerCount == 0) {
-                result.player0 = drawCard(7, result.deck.remaining)
+                result.player0 = drawCard(7, result.deck.remaining);
             }
             else if (playerCount == 1) {
-                result.player1 = drawCard(7, result.deck.remaining)
+                result.player1 = drawCard(7, result.deck.remaining);
             }
             else if (playerCount == 2) {
-                result.player2 = drawCard(7, result.deck.remaining)
+                result.player2 = drawCard(7, result.deck.remaining);
             }
             else if (playerCount == 3) {
-                result.player3 = drawCard(7, result.deck.remaining)
+                result.player3 = drawCard(7, result.deck.remaining);
             }
             result.save( (err) => {
-                if (err) {res.end(JSON.stringify(-1))}
+                if (err) { res.end(JSON.stringify(-1)); }
                 else {
                     res.end("Lobby Joined");
                 }
@@ -444,15 +465,15 @@ app.post('/app/joinLobby', (req, res) => {
 });
 
 app.get('/app/rejoinLobby', (req, res) => {
-    var c = req.cookies
+    var c = req.cookies;
     Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
         if (err || !result) {
             res.end(JSON.stringify(-1));
         }
         else if (!result.gameStarted) {
-            var playerCount = 0
+            var playerCount = 0;
             if (lobbies[result._id] == null) {
-                playerCount = 0
+                playerCount = 0;
             }
             else {
                 for (let index = 0; index < 4; index++) {
@@ -464,24 +485,24 @@ app.get('/app/rejoinLobby', (req, res) => {
                     }
                 }
             }
-            res.cookie("lobby", {id: result._id, player: playerCount, isHost: false})
+            res.cookie("lobby", {id: result._id, player: playerCount, isHost: false});
             if (playerCount == 0) {
-                result.player0 = drawCard(7, result.deck.remaining)
+                result.player0 = drawCard(7, result.deck.remaining);
             }
             else if (playerCount == 1) {
-                result.player1 = drawCard(7, result.deck.remaining)
+                result.player1 = drawCard(7, result.deck.remaining);
             }
             else if (playerCount == 2) {
-                result.player2 = drawCard(7, result.deck.remaining)
+                result.player2 = drawCard(7, result.deck.remaining);
             }
             else if (playerCount == 3) {
-                result.player3 = drawCard(7, result.deck.remaining)
+                result.player3 = drawCard(7, result.deck.remaining);
             }
             else {
-                res.end("Lobby Full")
+                res.end("Lobby Full");
             }
             result.save( (err) => {
-                if (err) console.log('ERROR FINDING LOBBY')
+                if (err) console.log('ERROR FINDING LOBBY');
                 else {
                     res.end("Lobby Joined");
                 }
@@ -494,14 +515,14 @@ app.get('/app/rejoinLobby', (req, res) => {
 });
 
 app.get('/app/makeHost', (req, res) => {
-    var c = req.cookies
-    res.cookie("lobby", {id: c.lobby.id, player: c.lobby.player, isHost: true})
-    getState(c.lobby.player, c.lobby.id) 
+    var c = req.cookies;
+    res.cookie("lobby", {id: c.lobby.id, player: c.lobby.player, isHost: true});
+    getState(c.lobby.player, c.lobby.id); 
     res.end();
 });
 
 app.get('/app/startGame', (req, res) => {
-    var c = req.cookies
+    var c = req.cookies;
     Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
         if (err || !result) {
             res.end(JSON.stringify(-1));
@@ -511,7 +532,7 @@ app.get('/app/startGame', (req, res) => {
                 result.gameStarted = true;
             }
             else {
-                return res.end("Not Enough Players To Start Game")
+                return res.end("Not Enough Players To Start Game");
             }
             result.save( (err) => {
                 if (err) {res.end(JSON.stringify(-1));}
@@ -558,7 +579,7 @@ function isPasswordCorrect(account, password) {
 }
 
 app.post('/login', (req, res) => {
-    var user = {username: req.body.username}
+    var user = {username: req.body.username};
     User.findOne(user).exec( (err, result) => {
         if (err || !result) {
             res.end(JSON.stringify(-1));
@@ -584,14 +605,25 @@ app.post('/createUser', (req, res) => {
         } else {
             var salt = Math.floor(Math.random() * 1000000000000);
             var hash = getHash(req.body.password, salt);
-            var temp = new User({
-                'username': req.body.username,
-                'salt': salt,
-                'hash': hash,
-                'stats': {wins: 0, losses: 0, streak: 0}
+            var stats = new Stat({
+                wins: 0,
+                losses: 0,
+                streak: 0
             });
-            temp.save((err) => {
-                err ? res.end("db error occurred") : res.end("User Created!");
+            stats.save((err) => {
+                if (err) {
+                    res.end("db error occurred");
+                } else {
+                    var temp = new User({
+                        'username': req.body.username,
+                        'salt': salt,
+                        'hash': hash,
+                        'stats': stats
+                    });
+                    temp.save((err) => {
+                        err ? res.end("db error occurred") : res.end("User Created!");
+                    });
+                }
             });
         }
     });
