@@ -296,15 +296,42 @@ app.post('/app/playedCard', (req, res) => {
                         if (err) {
                             res.end(JSON.stringify(-1));
                         } else {
+                            if (value == '%') {
+                                result.direction == 1 ? result.direction = 3 : result.direction = 1;
+                            }
                             result.deck.played.push("" + color + " " + value + " " + cardID);
-                            result.turn = (result.turn + 1) % lobbies[c.lobby.id].length;
-                            for (let index = result.turn; index < 4; index++) {
-                                if (lobbies[c.lobby.id][index] == null) {
-                                    result.turn = (result.turn + 1) % lobbies[c.lobby.id].length;
-                                }
-                                else {
-                                    break;
-                                }
+                            var count = 0;
+                            var nextPlayer = 1;
+                            if (value == '#') { nextPlayer = 2; }
+                            result.turn = (result.turn + result.direction) % 4;
+                            while (count != nextPlayer) {
+                                if (lobbies[c.lobby.id][result.turn] == null) {
+                                    result.turn = (result.turn + result.direction) % 4;
+                                    if (value == '+') {
+                                        if (result.deck.remaining.length < 2) {
+                                            result.deck.remaining = shuffleDeck();
+                                            var lastCard = result.deck.played.pop();
+                                            result.deck.played = [lastCard];                                            
+                                        }
+                                        var cards = drawCard(2, result.deck.remaining);
+                                        if (result.turn == 0 && result.player0 != [null]) {
+                                            result.player0.append(cards[0]);
+                                            result.player0.append(cards[1]);
+                                        }
+                                        if (result.turn == 1 && result.player1 != [null]) {
+                                            result.player1.append(cards[0]);
+                                            result.player1.append(cards[1]);
+                                        }
+                                        if (result.turn == 2 && result.player2 != [null]) {
+                                            result.player2.append(cards[0]);
+                                            result.player2.append(cards[1]);
+                                        }
+                                        if (result.turn == 3 && result.player3 != [null]) {
+                                            result.player3.append(cards[0]);
+                                            result.player3.append(cards[1]);
+                                        }
+                                    }
+                                } else { count++; }
                             }
                             result.save((err) => {
                                 if (err) {
@@ -549,7 +576,7 @@ function shuffleDeck() {
     var count = 0;
     [0, 1].forEach(pile => {
         ["red", "blue", "green", "yellow"].forEach(color => {
-            [0,1,2,3,4,5,6,7,8,9,"+2","$","%"].forEach(value => {
+            [0,1,2,3,4,5,6,7,8,9,"+","#","%"].forEach(value => {
                 res.push(color + " " + value + " " + count);
                 count++;
             });
