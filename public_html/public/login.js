@@ -6,6 +6,9 @@
  * Course: CSc 337; Fall 21
  * Purpose: handles the landing page requests
  */
+/**
+ * simple login post request using jquery
+ */
  function login() {
     $.post('/login',
     {
@@ -22,13 +25,14 @@
     });
 }
 
+/**
+ * simple account creation post request using jquery
+ */
 function createUser() {
     $.post('/createUser', 
     {
         username: $('#username').val(),
         password: $('#password').val()
     },
-    (data) => {
-        alert(data)
-    });
+    (data) => { alert(data) });
 }
