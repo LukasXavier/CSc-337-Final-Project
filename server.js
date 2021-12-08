@@ -62,6 +62,7 @@ io.on('connection', socket => {
         for (let index = 0; index < 4; index++) {
             getState(index, curCookie.lobby.id);
         }
+        console.log(lobbies[curCookie.lobby.id])
         Lobby.findOne({_id: curCookie.lobby.id}).exec( (err, result) => {
             if (err || !result) {
                 return;
@@ -71,6 +72,16 @@ io.on('connection', socket => {
                 }
             }
         });
+    })
+
+    socket.on("makeDrawFour", (player) => {
+        var curCookie = socket.request.cookies; 
+        io.to(lobbies[curCookie.lobby.id][player]).emit("drawFour");
+    })
+
+    socket.on("makeDrawTwo", (player) => {
+        var curCookie = socket.request.cookies; 
+        io.to(lobbies[curCookie.lobby.id][player]).emit("drawTwo");
     })
 
     socket.on("disconnect", () => {
@@ -120,7 +131,7 @@ io.on('connection', socket => {
                             if (lobbies[c.lobby.id][i] == null) {
                                 continue;
                             }
-                            else if (!newHostFound) {
+                            else if (!newHostFound && !result.gameStarted) {
                                 socket.to(lobbies[c.lobby.id][i]).emit("makeNewHost");
                                 socket.to(lobbies[c.lobby.id][i]).emit("startGameButton");
                                 newHostFound = true;
@@ -140,7 +151,7 @@ function remove(array, rem) {
     var newArray = [];
     for (let i = 0; i < 4; i++) {
         if (array[i] == null) {
-            continue;
+            newArray[i] = null;
         }
         else if (array[i] == rem) {
             newArray[i] == null;
@@ -186,23 +197,30 @@ mongoose.connect(mongoDBURL, { useNewUrlParser: true });
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 var cardCount = 0;
-app.get('/app/draw', (req, res) => {
+app.post('/app/draw', (req, res) => {
     var c = req.cookies;
     if (c && c.lobby) {
         Lobby.findOne({_id: c.lobby.id}).exec( (err, result) => {
             if (err || !result) {
                 res.end(JSON.stringify(-1));
+                console.log("BRUUUH")
             } else if (result.gameStarted) {
-                if (result.deck.remaining.length == 0) {
-                    result.deck.remaining = shuffleDeck();
-                    var lastCard = result.deck.played.pop();
-                    result.deck.played = [lastCard];
+                var cards = []
+                for (let i = 0; i < req.body.amount; i++) {
+                    if (result.deck.remaining.length == 0) {
+                        result.deck.remaining = shuffleDeck();
+                        var lastCard = result.deck.played.pop();
+                        result.deck.played = [lastCard];
+                    }
+                    cards.push(result.deck.remaining.pop());  
                 }
-                var card = result.deck.remaining.pop();
-                getPlayers(result, c.lobby.player)[0].push(card);
+                for (let i = 0; i < cards.length; i++) {
+                    getPlayers(result, c.lobby.player)[0].push(cards[i]);
+                }
                 result.save( (err) => {
                     if (err) {
                         res.end(JSON.stringify(-1));
+                        console.log("AHHHHH")
                     } else {
                         getState(0, c.lobby.id);
                         getState(1, c.lobby.id);
@@ -217,6 +235,7 @@ app.get('/app/draw', (req, res) => {
             }
         });
     } else {
+        console.log("BR")
         res.end(JSON.stringify(-1));
     }
 });
@@ -292,28 +311,36 @@ app.post('/app/playedCard', (req, res) => {
                     var cardID = req.body.id.substring(4);
                     var curPlayer = "player" + c.lobby.player;
                     var curCard = "" + color + " " + value + " " + cardID;
+                    if (value == "$" || value == "?") {
+                        var curCard = "black " + value + " " + cardID;
+                    }
                     Lobby.findOneAndUpdate({_id: c.lobby.id}, {$pull: {[curPlayer] : curCard}}).exec( (err) => {
                         if (err) {
                             res.end(JSON.stringify(-1));
                         } else {
                             if (value == '%') {
-                                result.direction == 1 ? result.direction = 3 : result.direction = 1;
+                                result.direction == 1 ? result.direction = -1 : result.direction = 1;
                             }
                             result.deck.played.push("" + color + " " + value + " " + cardID);
                             // somewhere in this block is broken for drawX()
                             var count = 0;
                             var nextPlayer = 1;
                             // I can't really tell if this works or not, it didn't seem to work with 2 players but maybe more?
-                            if (value == '#') { nextPlayer = 2; }
-                            result.turn = (result.turn + result.direction) % 4;
+                            if (value == '#') { 
+                                var nextPlayer = 2; 
+                            }
+                            result.turn = (result.turn + result.direction + 4) % 4;
                             while (count != nextPlayer) {
                                 if (lobbies[c.lobby.id][result.turn] == null) {
-                                    result.turn = (result.turn + result.direction) % 4;
-                                    // I think it's something with who's turn it is and who the drawn cards are going to
-                                    if (value == '+') { drawX(result, 2); }
-                                    if (value == '$') { drawX(result, 4); }
-                                } else { count++; }
+                                    result.turn = (result.turn + result.direction + 4) % 4;
+                                } else { 
+                                    count++; 
+                                    if (value == '#' && count == 1) {
+                                        result.turn = (result.turn + result.direction + 4) % 4;
+                                    }
+                                }
                             }
+                            
                             result.save((err) => {
                                 if (err) {
                                     res.end(JSON.stringify(-1));
@@ -322,7 +349,15 @@ app.post('/app/playedCard', (req, res) => {
                                     getState(1, c.lobby.id);
                                     getState(2, c.lobby.id);
                                     getState(3, c.lobby.id);
-                                    res.end("Make Move");
+                                    if (value == '+') { 
+                                        res.end("DrawTwo " + result.turn);
+                                     }
+                                    else if (value == '$') { 
+                                        res.end("DrawFour " + result.turn);
+                                     }
+                                    else {
+                                        res.end("Make Move");
+                                    }
                                 }
                             });
                         }
@@ -579,7 +614,7 @@ function shuffleDeck() {
     var res = [];
     var count = 0;
     [0, 1].forEach(pile => {
-        ["red", "blue", "green", "yellow"].forEach(color => {
+        ["red", "blue", "green", "goldenrod"].forEach(color => {
             [0,1,2,3,4,5,6,7,8,9,"+","#","%"].forEach(value => {
                 res.push(color + " " + value + " " + count);
                 count++;

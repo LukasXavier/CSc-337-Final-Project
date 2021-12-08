@@ -25,11 +25,12 @@ function followMouse(state, card) {
 /**
  * queries the server to draw a card
  */
-function draw() {
-    $.get('/app/draw',
+function draw(num) {
+    $.post('/app/draw',
+    {amount: num},
     (data) => {
         if (data == -1) {
-            alert("Something went wrong with the server, try clearing your cookies");
+            alert("Something went wrong with the server, try clearing your cookies 4");
         } 
     });
 }
@@ -41,16 +42,18 @@ function getGame() {
     $.get('/app/rejoinLobby',
     (data) => {
         if (data == -1) {
-            alert("Something went wrong with the server, try clearing your cookies");
+            alert("Something went wrong with the server, try clearing your cookies 5");
         } 
         else if (data == "Lobby Full") {
             alert("The Lobby is Full");
+            window.location.href = '/app/lobby.html';
         }
         else if (data == "Lobby Joined") {
             socket.emit("getGame")
         }
         else if (data == "Game Started") {
             alert("Cannot Join: The Game Has Already Been Started");
+            window.location.href = '/app/lobby.html';
         }
     });
 }
@@ -120,6 +123,53 @@ function opponentCard(player, amount) {
     return out
 }
 
+function lightUp(parent) {
+    $("#" + parent.id).css("filter", "brightness(100%)")
+}
+
+function dim(parent) {
+    $("#" + parent.id).css("filter", "brightness(50%)")
+}
+
+function chooseColor(cardVal, id) {
+    var data = cardVal + " " + id
+    var popUp = '<div id="popUp">'
+    + '<div id="red" onmouseover="lightUp(this);" onmouseout="dim(this);"' 
+    + 'onclick="colorChosen(this)" data-internalid="' + data + '"></div>'
+    + '<div id="blue" onmouseover="lightUp(this);" onmouseout="dim(this);"' 
+    + 'onclick="colorChosen(this)" data-internalid="' + data + '"></div>'
+    + '<div id="goldenrod" onmouseover="lightUp(this);" onmouseout="dim(this);"' 
+    + 'onclick="colorChosen(this)" data-internalid="' + data + '"></div>'
+    + '<div id="green" onmouseover="lightUp(this);" onmouseout="dim(this);"' 
+    + 'onclick="colorChosen(this)" data-internalid="' + data + '"></div>'
+    + '</div>'
+    $(popUp).appendTo('body');
+}
+
+function colorChosen(card) {
+    var colorChosen = card.id;
+    console.log(card.id)
+    var data = $('#' + colorChosen).data('internalid').split(" ");
+    var value = data[0];
+    var cardID = data[1];
+    $("#popUp").remove();
+    $.post('/app/playedCard', { 
+        value: value,
+        color: colorChosen,
+        id: cardID
+        }, (data) => {
+            console.log(typeof data)
+            if (data == -1) {
+                alert("Something went wrong with the server, try reloading the page");
+            }
+            else if (data.includes("DrawFour")) {
+                console.log("DRAW4")
+                var draw = data.split(" ")
+                socket.emit("makeDrawFour", parseInt(draw[1]))
+            }
+    });
+}
+
 /**
  * asks the server if it can play this card or not
  * @param {DOM} card - the DOM element that contains the card you want to play
@@ -127,6 +177,10 @@ function opponentCard(player, amount) {
 function makeMove(card) {
     var cardVal = $("#" + card.id).children()[0].innerText
     var cardColor = $("#" + card.id).attr("style").split(" ")[1].replace(";", "")
+    if (cardColor == "black") {
+        chooseColor(cardVal, card.id);
+        return;
+    }
     // lets the player play any card if there is no previously played
     if ($(".playedCards").children().length == 0) {
         var lastPlayedCardVal = cardVal
@@ -144,8 +198,14 @@ function makeMove(card) {
             color: cardColor,
             id: card.id
             }, (data) => {
+                console.log(typeof data)
+                
                 if (data == -1) {
                     alert("Something went wrong with the server, try reloading the page");
+                }
+                else if (data.includes("DrawTwo")) {
+                    var draw = data.split(" ")
+                    socket.emit("makeDrawTwo", parseInt(draw[1]))
                 }
         });
     }
@@ -159,7 +219,7 @@ function createLobby() {
     {lobbyCode: $('#lobbyCreateID').val()},
     (data, status) => {
         if (data == -1) {
-            alert("Something went wrong with the server, try clearing your cookies")
+            alert("Something went wrong with the server, try clearing your cookies 1")
         }
         else if (data == "Lobby Invalid") {
             alert("Lobby Already Created")
@@ -178,7 +238,7 @@ function startGame() {
     $.get('/app/startGame',
     (data, status) => {
         if (data == -1) {
-            alert("Something went wrong with the server, try clearing your cookies")
+            alert("Something went wrong with the server, try clearing your cookies 2")
         }
         else if (data == "Game Started") {
             $(".playedCards").children("#gameStart").remove();
@@ -211,7 +271,7 @@ function joinLobby() {
     {lobbyCode: $('#lobbyJoinID').val()},
     (data, status) => {
         if (data == -1) {
-            alert("Something went wrong with the server, try clearing your cookies");
+            alert("Something went wrong with the server, try clearing your cookies 3");
         } 
         else if (data == "Lobby Full") {
             alert("The Lobby is Full");
@@ -228,6 +288,14 @@ function joinLobby() {
         }
     })
 }
+
+socket.on("drawTwo", () => { 
+    draw(2);
+})
+
+socket.on("drawFour", () => { 
+    draw(4);
+})
 
 // socket to tell the client the server is full
 socket.on("lobbyFull", () => { alert("The Lobby is Full"); })
