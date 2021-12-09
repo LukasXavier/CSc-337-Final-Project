@@ -19,6 +19,12 @@ body {
     height: 100%;
 }
 
+#turnIndicator {
+    height: 50px;
+    width: 50px;
+    position: fixed;
+}
+
 .cardBack2 {
     width: 200px;
     height: 30%;
