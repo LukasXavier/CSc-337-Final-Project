@@ -1,18 +1,31 @@
+<!--
+    Author: Eric Mendoza (ericmendoza@email.arizona.edu)
+    Author: Luke Ramirez (lucasxavier@email.arizona.edu)
+    File: uno.html
+    Assignment: Final Project
+    Course: CSc 337; Fall 21
+    Purpose: Displays the game page
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Uno</title>
     <link rel="stylesheet" href="style.css">
+    <script src="/jquery.js"></script>
+    <script src="/socket.io.min.js"></script>
     <script src="script.js"></script>
-    <script src="jquery.js"></script>
 </head>
 
-<body">
-
+<body onload="getGame();">
+    <img id="background" src="images/Background.png">
+    <div onclick="draw(1);" class="playedCards"></div>
     <div id="cardGroup1"></div>
-    <div class="playedCards"></div>
-    <div id="cardGroup4" onclick="makeCard(1)"></div>
-
+    <div id="cardGroup2"></div>
+    <div id="cardGroup3"></div>
+    <div id="cardGroup4"></div>
+    <img id="turnIndicator" src="images/Star.png">
+    
 </body>
 </html>

@@ -1,12 +1,15 @@
 /**
- * Author: Eric Mendoza ()
+ * Author: Eric Mendoza (ericmendoza@email.arizona.edu)
  * Author: Luke Ramirez (lucasxavier@email.arizona.edu)
- * File: server.js
+ * File: login.js
  * Assignment: Final Project
  * Course: CSc 337; Fall 21
- * Purpose: 
+ * Purpose: handles the landing page requests
  */
-function login() {
+/**
+ * simple login post request using jquery
+ */
+ function login() {
     $.post('/login',
     {
         username: $('#usernameLogin').val(),
@@ -14,7 +17,7 @@ function login() {
     },
     (data) => {
         if (data == -1) {
-            alert("Unknown User");
+            alert("Invalid Username or Password");
         } else {
             alert("Logged In");
             window.location.href = '/app/lobby.html';
@@ -22,24 +25,14 @@ function login() {
     });
 }
 
+/**
+ * simple account creation post request using jquery
+ */
 function createUser() {
     $.post('/createUser', 
     {
         username: $('#username').val(),
         password: $('#password').val()
     },
-    (data) => {
-        alert(data)
-    });
-}
-
-function createLobby() {
-    $.post('/createLobby', {
-        players: {p0: [], p1: [], p2: [], p3: []},
-        deck: {played: [], remaining: []},
-        turn: 1
-    }, (data, status) => {
-        alert(data)
-        window.location.href = '/app/uno.html';
-    })
+    (data) => { alert(data) });
 }

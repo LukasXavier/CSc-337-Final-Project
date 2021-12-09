@@ -1,9 +1,37 @@
+/*
+    Author: Eric Mendoza (ericmendoza@email.arizona.edu)
+    Author: Luke Ramirez (lucasxavier@email.arizona.edu)
+    File: main.css
+    Assignment: Final Project
+    Course: CSc 337; Fall 21
+    Purpose: Handles the styling for index.html and lobby.html
+*/
+
 body {
     margin: 0;
     text-align: center;
     font-family: sans-serif;
     background-color: black;
 }
+
+#help {
+    display: block;
+    font-size: 40px;
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    margin: 50px;
+    color: rgb(0, 255, 0);
+}
+
+.rules {
+    display: block;
+    margin-left: 120px;
+    text-align: left;
+    color: rgb(0, 255, 0);
+    font-size: 25px;
+}
+
 
 h1 {
     color: blue;
@@ -22,4 +50,21 @@ p {
 input {
     margin-bottom: 30px;
     color: red;
+}
+
+#stats {
+    position: fixed;
+    width: 80%;
+    height: 40%;
+    left: 10%;
+    top: 55%;
+    border: grey 2px solid;
+}
+
+.stat {
+    float: left;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
 }

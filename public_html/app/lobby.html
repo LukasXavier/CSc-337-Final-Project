@@ -1,3 +1,12 @@
+<!--
+    Author: Eric Mendoza (ericmendoza@email.arizona.edu)
+    Author: Luke Ramirez (lucasxavier@email.arizona.edu)
+    File: lobby.html
+    Assignment: Final Project
+    Course: CSc 337; Fall 21
+    Purpose: displays the lobby page
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,12 +14,20 @@
     <title>Uno Lobby Manager</title>
     <link rel="stylesheet" href="/main.css">
     <script src="/jquery.js"></script>
+    <script src="socket.io.js"></script>
 </head>
 
-<body class="lobby">
+<body class="lobby" onload="populateStats();">
     <h1 class="lobby">Uno</h1>  
     <h2 class="lobby">Create Lobby</h2>
+    <input id="lobbyCreateID" type="text">
     <input class="lobby" type="button" value="Create Lobby" onclick="createLobby()">
+    <h2 class="lobby">Join Lobby</h2>
+    <input id="lobbyJoinID" type="text">
+    <input class="lobby" type="button" value="Join Lobby" onclick="joinLobby()">
+    <h2>Player Stats</h2>
+    <div id="stats"></div>
+    <a id="help" href="help.html">Help</a>
     <script src="script.js"></script>
 </body>
 </html>
