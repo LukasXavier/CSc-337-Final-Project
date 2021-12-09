@@ -38,16 +38,16 @@ var UserSchema = new mongoose.Schema({
     username: String,
     salt: String,
     hash: String,
-    stats: {type: mongoose.Schema.Types.ObjectId, ref: 'Stats'}
+    userStat: {type: mongoose.Schema.Types.ObjectId, ref: 'UserStats'}
 });
 var User = mongoose.model("Users", UserSchema);
 
-var StatSchema = new mongoose.Schema({
+var UserStatSchema = new mongoose.Schema({
     wins: Number,
     losses: Number,
     streak: Number 
 });
-var Stat = mongoose.model("Stats", StatSchema);
+var UserStat = mongoose.model("UserStats", UserStatSchema);
 
 var LobbySchema = new mongoose.Schema({
     player0 : [String],
@@ -492,19 +492,25 @@ app.get('/app/clearCookie', (req, res) => {
 app.post('/app/gameOver', (req, res) => {
     var c = req.cookies;
     var won = req.body.won;
-    User.findOne({username: c.username}).populate('stats').exec( (err, result) => {
-        if (err || !result) {
+    User.findOne({username: c.username}).exec((err, user) => {
+        if (err || !user) {
             res.end(JSON.stringify(-1));
         } else {
-            if (won) {
-                result.stats.wins += 1;
-                result.stats.streak += 1;
-            } else {
-                result.stats.losses += 1;
-                result.stats.streak = 0;
-            }
-            result.save((err) => {
-                err ? res.end(JSON.stringify(-1)) : res.end();
+            UserStat.findOne({_id: user.userStat}).exec((err, result) => {
+                if (err || !result) {
+                    res.end(JSON.stringify(-1));
+                } else {
+                    if (won == "true") {
+                        result.wins++;
+                        result.streak++;
+                    } else {
+                        result.losses++;
+                        result.streak = 0;
+                    }
+                    result.save((err) => {
+                        err ? res.end(JSON.stringify(-1)) : res.end();
+                    })
+                }
             });
         }
     });
@@ -769,7 +775,7 @@ function drawCard(num, deck) {
 app.get('/app/stats', (req, res) => {
     var c = req.cookies;
     if (c && c.username) {
-        User.find().populate('stats').exec((err, results) => {
+        User.find().populate('userStat').exec((err, results) => {
             if (err || !results) {
                 res.end(JSON.stringify(-1));
             } else {
@@ -777,9 +783,9 @@ app.get('/app/stats', (req, res) => {
                 results.forEach(user => {
                     playerStat = {
                         username: user.username,
-                        wins: user.stats.wins,
-                        losses: user.stats.losses,
-                        streak: user.stats.streak
+                        wins: user.userStat.wins,
+                        losses: user.userStat.losses,
+                        streak: user.userStat.streak
                     }
                     playerStats.push(playerStat);
                 });
@@ -866,12 +872,12 @@ app.post('/createUser', (req, res) => {
             // salts and hashes the given password 
             var salt = Math.floor(Math.random() * 1000000000000);
             var hash = getHash(req.body.password, salt);
-            var stats = new Stat({
+            var userStat = new UserStat({
                 wins: 0,
                 losses: 0,
                 streak: 0
             });
-            stats.save((err) => {
+            userStat.save((err) => {
                 if (err) {
                     res.end("db error occurred");
                 } else {
@@ -880,7 +886,7 @@ app.post('/createUser', (req, res) => {
                         'username': req.body.username,
                         'salt': salt,
                         'hash': hash,
-                        'stats': stats
+                        'userStat': userStat
                     });
                     temp.save((err) => {
                         err ? res.end("db error occurred") : res.end("User Created!");
