@@ -80,6 +80,37 @@ socket.on("receiveGame", (data) => {
         }
         $("#cardGroup" + i).append(opponentCard(i, data[i].length));
     }
+
+    if (data[6] == 0) {
+        $("#turnIndicator").css("bottom", "250px")
+        $("#turnIndicator").css("left", "50%")
+        $("#turnIndicator").css("transform", "translateX(-50%)")
+        $("#turnIndicator").css("top", "")
+        $("#turnIndicator").css("right", "")
+    }
+    else if (data[6] == 1) {
+        $("#turnIndicator").css("left", "250px")
+        $("#turnIndicator").css("top", "50%")
+        $("#turnIndicator").css("transform", "translateY(-50%)")
+        $("#turnIndicator").css("right", "0")
+        $("#turnIndicator").css("bottom", "0")
+    }
+    else if (data[6] == 2) {
+        $("#turnIndicator").css("top", "250px")
+        $("#turnIndicator").css("left", "50%")
+        $("#turnIndicator").css("transform", "translateX(-50%)")
+        $("#turnIndicator").css("bottom", "")
+        $("#turnIndicator").css("right", "")
+    }
+    else if (data[6] == 3) {
+        $("#turnIndicator").css("right", "250px")
+        $("#turnIndicator").css("top", "50%")
+        $("#turnIndicator").css("transform", "translateY(-50%)")
+        $("#turnIndicator").css("bottom", "")
+        $("#turnIndicator").css("left", "")
+    }
+    
+
     // Used to communicate the winner and looser of the game
     if (data[0].length == 0) {
         alert("You Win!")
@@ -242,6 +273,7 @@ function startGame() {
         }
         else if (data == "Game Started") {
             $(".playedCards").children("#gameStart").remove();
+            $(".playedCards").attr("onclick", "draw(1);");
         }
         else {
             alert(data)
@@ -257,6 +289,7 @@ socket.on("startGameButton", () => {
         var button = '<input type="button" id="gameStart" value="Start Game" onclick="startGame()" ' 
                      + 'style="height:30px; width:100px;">'
         $(".playedCards").append(button);
+        $(".playedCards").attr("onclick", null);
     }
 })
 
