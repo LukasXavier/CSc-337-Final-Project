@@ -51,3 +51,20 @@ input {
     margin-bottom: 30px;
     color: red;
 }
+
+#stats {
+    position: fixed;
+    width: 80%;
+    height: 40%;
+    left: 10%;
+    top: 55%;
+    border: grey 2px solid;
+}
+
+.stat {
+    float: left;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}

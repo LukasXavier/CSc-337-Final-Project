@@ -81,6 +81,7 @@ socket.on("receiveGame", (data) => {
         $("#cardGroup" + i).append(opponentCard(i, data[i].length));
     }
 
+    // this block displays the current play, it moves around based on who's turn it is
     if (data[6] == 0) {
         $("#turnIndicator").css("bottom", "250px")
         $("#turnIndicator").css("left", "50%")
@@ -322,10 +323,26 @@ function joinLobby() {
     })
 }
 
+/**
+ * used to get the player stats
+ */
+function populateStats() {
+    $.get('/app/stats',
+    (data) => {
+        if (data == -1) {
+            $("#stats").text("Something went from with fetching the stats");
+        } else {
+            $("#stats").html(data);
+        }
+    });
+}
+
+// socket to tell the client to draw 2 cards
 socket.on("drawTwo", () => { 
     draw(2);
 })
 
+// socket to tell the client to draw 4 cards
 socket.on("drawFour", () => { 
     draw(4);
 })

@@ -38,7 +38,7 @@ var UserSchema = new mongoose.Schema({
     username: String,
     salt: String,
     hash: String,
-    stats: {type: mongoose.Schema.Types.ObjectId, ref: 'Stat'}
+    stats: {type: mongoose.Schema.Types.ObjectId, ref: 'Stats'}
 });
 var User = mongoose.model("Users", UserSchema);
 
@@ -765,39 +765,47 @@ function drawCard(num, deck) {
     return res;
 }
 
-// WIP: connected to the thing below
+// gets an html string of player stats
 app.get('/app/stats', (req, res) => {
-    User.find().exec((err, results) => {
-        if (err || !results) {
-            res.end(JSON.stringify(-1));
-        } else {
-            res.end(JSON.stringify(getStats(results)));
-        }        
-    });
-});
-
-// FIXME: half works, bullshit call backs
-function getStats(results) {
-    var playerStats = [];
-    results.forEach(user => {
-        console.log(user);
-        Stat.findOne({_id: user.stats}).exec((err, result) => {
-            console.log(result);
-            if (err || !result) {
-                console.log("ERROR");
+    var c = req.cookies;
+    if (c && c.username) {
+        User.find().populate('stats').exec((err, results) => {
+            if (err || !results) {
+                res.end(JSON.stringify(-1));
             } else {
-                var playerStat = {
-                    username: user.username,
-                    wins: result.wins,
-                    losses: result.losses,
-                    streak: result.streak
-                };
-                console.log(playerStat);
-                playerStats.push(playerStat);
+                playerStats = [];
+                results.forEach(user => {
+                    playerStat = {
+                        username: user.username,
+                        wins: user.stats.wins,
+                        losses: user.stats.losses,
+                        streak: user.stats.streak
+                    }
+                    playerStats.push(playerStat);
+                });
+                res.end(JSON.stringify(cleanStats(playerStats)));
             }
         });
+    } else {
+        res.end(JSON.stringify(-1));
+    }
+});
+
+/**
+ * This function takes in the mongoose result and cleans it up
+ * @param {Array} stats - a mongoose query for users with a populate('stats')
+ * @returns an html string of the stats
+ */
+function cleanStats(stats) {
+    var res = "";
+    stats.forEach(stat => {
+        res += "<div class='stat'><h2>Username: " + stat.username + '</h2>'
+        res += "<h3 style='color: blue;'>Wins: " + stat.wins + '</h3>'
+        res += "<h3 style='color: red;'>losses: " + stat.losses + '</h3>'
+        res += "<h3 style='color: goldenrod;'>streak: " + stat.streak + '</h3>'
+        res += '</div>'
     });
-    return playerStats;
+    return res;
 }
 
 /**
