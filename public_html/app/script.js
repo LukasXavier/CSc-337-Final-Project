@@ -110,7 +110,6 @@ socket.on("receiveGame", (data) => {
         $("#turnIndicator").css("bottom", "")
         $("#turnIndicator").css("left", "")
     }
-    
 
     // Used to communicate the winner and looser of the game
     if (data[0].length == 0) {
@@ -155,14 +154,27 @@ function opponentCard(player, amount) {
     return out
 }
 
+/**
+ * the square that you are hovering over lights up
+ * @param {DOM} parent a div of the wild card square
+ */
 function lightUp(parent) {
     $("#" + parent.id).css("filter", "brightness(100%)")
 }
 
+/**
+ * when you are not hovering over it, it gets darker
+ * @param {DOM} parent a div of the wild card square
+ */
 function dim(parent) {
     $("#" + parent.id).css("filter", "brightness(50%)")
 }
 
+/**
+ * Used to display the wild card choices
+ * @param {String} cardVal the value on the card ($ or +)
+ * @param {String} id the card id
+ */
 function chooseColor(cardVal, id) {
     var data = cardVal + " " + id
     var popUp = '<div id="popUp">'
@@ -178,6 +190,10 @@ function chooseColor(cardVal, id) {
     $(popUp).appendTo('body');
 }
 
+/**
+ * used to tell the server what color was chosen for the wild card
+ * @param {DOM} card a card DOM object
+ */
 function colorChosen(card) {
     var colorChosen = card.id;
     console.log(card.id)

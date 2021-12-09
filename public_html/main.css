@@ -25,7 +25,7 @@ body {
 }
 
 .rules {
-    float: left;
+    display: block;
     margin-left: 120px;
     text-align: left;
     color: rgb(0, 255, 0);
