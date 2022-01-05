@@ -14,5 +14,5 @@ something that we had to learn by ourselves.
 We were able to implement a functional online game of Uno, allowing for mutliple lobbies to active at the same
 time while also supporting lobby sizes of 2-4.
 
-#Known Bugs
+### Known Bugs
   Using Firefox results in stats not being updated after a game ends
